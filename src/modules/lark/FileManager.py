@@ -1,0 +1,66 @@
+import datetime
+import time
+from lark_oapi.api.drive.v1 import *
+from .TenantManager import TenantManager
+import os
+import asyncio
+from src.modules.lark import Lark
+from loguru import logger
+import requests
+
+class FileManager:
+    def __init__(self, lark_client: Lark, bitable_token: str):
+        self.lark = lark_client.client
+        self.bitable_token = bitable_token
+        self.recording_directory = os.getenv("RECORDING_DIRECTORY") or "medias/recordings"
+        self.semaphore = asyncio.Semaphore(4)
+
+    def download_url(self, url, file_name):
+        response = requests.get(url)
+
+        if response.status_code == 200:
+            with open(file_name, 'wb') as f:
+                f.write(response.content)
+            print(f"File downloaded successfully and saved as {file_name}")
+        else:
+            print(f"Failed to download file. Status code: {response.status_code}")
+
+    def upload(self, filepath):
+        if not os.path.exists(filepath):
+            return
+        filename = os.path.split(filepath)[1]
+        file = open(filepath, 'rb')
+
+        size = self.get_file_size(filepath)
+
+        request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
+            .request_body(UploadAllMediaRequestBody.builder()
+                          .file_name(filename)
+                          .parent_type("bitable_file")
+                          .parent_node(self.bitable_token)
+                          .size(size)
+                          .file(file)
+                          .build()) \
+            .build()
+
+        response: UploadAllMediaResponse = self.lark.drive.v1.media.upload_all(request)
+
+        if not response.success():
+            logger.error(
+                f"client.drive.v1.media.aupload_all failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
+            )
+            return None
+
+        logger.info(f"File uploaded: {filepath}, message: {response.msg}, timestamp: {datetime.datetime.now()}")
+
+        return response.data.file_token
+
+
+    def get_file_size(self, filepath):
+        try:
+            with open(filepath, 'rb') as file:
+                file.seek(0, 2)  # Move the file pointer to the end of the file
+                file_size = file.tell()  # Get the current position, which is the file size
+                return file_size
+        except FileNotFoundError:
+            return None

@@ -1,0 +1,8 @@
+requests
+numpy
+librosa
+scikit-learn
+openai
+pydub
+lark_oapi
+loguru
