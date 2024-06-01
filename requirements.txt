@@ -6,3 +6,4 @@ openai
 pydub
 lark_oapi
 loguru
+SpeechRecognition

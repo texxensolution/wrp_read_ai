@@ -96,14 +96,7 @@ class EloquentOpenAI:
         ).choices[0].message.content
     
     def normalize_transcription(self, transcription: str):
-        transcripts = []
-        lines = transcription.split('\n')
-        # timestamp, transcript = transcription.split(' : : ')
-        for line in lines:
-            timestamp, transcript = line.split(': :')
-            transcript = transcript.strip()
-            transcripts.append(transcript)
-        return self.preprocess(" ".join(transcripts).lower())
+        return self.preprocess(transcription.lower())
     
     def normalize_given_transcription(self, transcription: str):
         transcripts = []

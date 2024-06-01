@@ -226,10 +226,7 @@ class Worker:
                 self.enqueue_pending_records(records)
                 
                 time.sleep(3)
-
                
-
-
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
             response = self.bitable_manager.update_record(
@@ -312,7 +309,7 @@ class Worker:
 
                 if is_downloaded:
                     print('📜 transcribing...')
-                    speaker_transcription = self.transcriber.transcribe_with_timestamp(filename)
+                    speaker_transcription = self.transcriber.transcribe_with_google(filename)
                     
                     print('⚖️  evaluating script reading...')
                     evaluation_result = self.eloquent.perform_all_evaluation(
