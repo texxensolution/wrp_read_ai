@@ -174,7 +174,7 @@ class EloquentOpenAI:
             return 1
 
 
-    def perform_all_evaluation(self, given_script: str, transcription: str, audio_path: str):
+    def script_reading_evaluation(self, given_script: str, transcription: str, audio_path: str):
         y, sr = librosa.load(audio_path)
         energy = self.calculate_energy(y)
         avg_pause_duration = self.calculate_pause_duration(y, sr)
