@@ -22,7 +22,7 @@ class ScriptReadingPayloadBuilder:
             'evaluation': evaluation['evaluation'],
             'metadata': evaluation['metadata'],
             'parent_record_id': record['record_id'],
-            'wpm_category': evaluation['wpm_category']
+            'wpm_category': evaluation['wpm_category'],
         }
 
         return self

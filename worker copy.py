@@ -4,7 +4,7 @@ import time
 import requests
 from dotenv import load_dotenv
 from uuid import uuid4
-import datetime
+from datetime import datetime
 import pytz
 import json
 from src.modules.whisper import Transcriber
@@ -14,8 +14,7 @@ from typing import List, Dict, Any
 import librosa
 from queue import Queue
 import multiprocessing
-from src.modules.enums import AssessmentType
-from pydub import AudioSegment
+from src.modules.builders import ScriptReadingPayloadBuilder, QuoteTranslationPayloadBuilder
 
 @dataclass
 class Worker:
@@ -45,61 +44,13 @@ class Worker:
     skipped_records = [] # list of record_id to skipped
     builded_payload = None
     queue: Queue = Queue()
-
-    def __init__(self):
-        self.script_reading_table_id = self.get_correct_table_id(AssessmentType.SCRIPT_READING)
-        self.quote_translation_table_id = self.get_correct_table_id(AssessmentType.QUOTE_TRANSLATION)
+    script_reading_payload_builder = ScriptReadingPayloadBuilder()
+    quote_translation_payload_builder = QuoteTranslationPayloadBuilder()
 
     def remove_skipped_records(self):
         for index, current_record in enumerate(self.pending_records):
             if current_record['record_id'] in self.skipped_records: 
                 self.pending_records.pop(index)
-            
-    
-    def create_quote_translation_payload(self, record: List[Dict[str, Any]], evaluation: List[Dict[str, Any]]):
-        self.builded_payload = {
-            "email": record["email"],
-            "result": evaluation['result'],
-            "transcription": evaluation["transcription"],
-            "quote": evaluation["quote"],
-            "understanding_of_the_quote": evaluation["understanding_of_the_quote"],
-            "relevance_to_the_question": evaluation["relevance_to_the_question"],
-            "depth_of_analysis": evaluation["depth_of_analysis"],
-            "support_and_justification": evaluation["support_and_justification"],
-            "original_and_creativity": evaluation["original_and_creativity"]
-        }
-
-        return self
-
-
-    # payload builder for script reading
-    def create_payload(self, record: List[Dict[str, Any]], evaluation: List[Dict[str, Any]]):
-        self.builded_payload = {
-            "email": record["email"],
-            'name': record['name'],
-            "result": evaluation['result'],
-            'audio_duration_seconds': evaluation['audio_duration'],
-            'words_per_minute': evaluation['words_per_minute'],
-            'transcription': evaluation['transcription'],
-            'given_transcription': evaluation['given_transcription'],
-            'energy': float(evaluation['energy']),
-            'pronunciation': evaluation['score_object']['pronunciation'],
-            'enunciation': evaluation['score_object']['enunciation'],
-            'clarityofexpression': evaluation['score_object']['clarityofexpression'],
-            'similarity_score': evaluation['similarity_score'],
-            'evaluation': evaluation['evaluation']
-        }
-
-        return self
-    
-    def build_payload(self):
-        created_payload = self.builded_payload
-        self.builded_payload = None
-        return created_payload
-
-    def attach_file_token_to_payload(self, file_token: str):
-        self.builded_payload['audio'] = [{ "file_token": file_token }]
-        return self
             
     def enqueue_pending_records(self, records):
         for record in records:
@@ -133,14 +84,6 @@ class Worker:
         elif assessment_type == "Quote Translation":
             return os.getenv('QUOTE_TRANSLATION_TABLE_ID')
 
-    def resample_audio_to_16khz(self, audio_path: str):
-        audio = AudioSegment.from_file(audio_path)
-
-        resampled_audio = audio.set_frame_rate(16000)
-
-        resampled_audio.export(audio_path, format="wav")
-
-
     def job_processing_script_reading(self, record, destination_table_id: str):
         record_id = record["record_id"]
 
@@ -153,16 +96,22 @@ class Worker:
 
         audio_path = evaluation['audio_path']
 
-        self.resample_audio_to_16khz(audio_path)
-
         file_token = self.file_manager.upload(audio_path)
-        print('audio path', audio_path)
 
-        payload = self.create_payload(record=record, evaluation=evaluation) \
-            .attach_file_token_to_payload(file_token=file_token) \
-            .build_payload()
+        # payload = self.create_payload(record=record, evaluation=evaluation) \
+        #     .attach_file_token_to_payload(file_token=file_token) \
+        #     .build_payload()
 
-        print('payload', payload)
+        payload = self.script_reading_payload_builder \
+            .make(
+                record=record, 
+                evaluation=evaluation
+            ) \
+            .attach_file_token(
+                key='audio', 
+                file_token=file_token
+            ) \
+            .build()
 
         response = self.bitable_manager.create_record(
             table_id=destination_table_id, 
@@ -176,7 +125,6 @@ class Worker:
         )
 
         return is_done
-
 
     def job_processing_quote_translation(self, record, destination_table_id: str):
         record_id = record["record_id"]
@@ -213,7 +161,6 @@ class Worker:
         )
 
         return is_done
-    
 
     def work(self):
         print("worker initiated...")
@@ -233,8 +180,6 @@ class Worker:
                 assessment_type = record['assessment_type']
 
                 destination_table_id = self.get_correct_table_id(assessment_type)
-
-                print('assessment', assessment_type, assessment_type == "Quote Translation")
 
                 if assessment_type == "Script Reading":
 
@@ -274,12 +219,9 @@ class Worker:
                 )
 
                 self.enqueue_pending_records(records)
-
-                # time.sleep(5)
-
-                # download_mp3(current_record['audio_url'], file_name=filename)
-
-
+                
+                time.sleep(3)
+               
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
             response = self.bitable_manager.update_record(
@@ -340,6 +282,14 @@ class Worker:
         # skipped this record
         self.skipped_records.append(record['record_id'])
 
+    def get_current_timestamp(self):
+        # Get the current datetime
+        current_datetime = datetime.now()
+
+        # Format the current datetime as a string
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
+
+        return formatted_datetime
 
     def process_script_reading_record(self, record):
         retries = 0
@@ -356,14 +306,16 @@ class Worker:
                 email = record["email"]
                 given_transcription = record["given_transcription"]
 
-                filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}-{time.time()}.mp3")
+                current_timestamp = self.get_current_timestamp()
+
+                filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}-{current_timestamp}.mp3")
 
                 # download the mp3 file
                 is_downloaded = self.download_mp3(audio_url, filename)
 
                 if is_downloaded:
                     print('📜 transcribing...')
-                    speaker_transcription = self.transcriber.transcribe_with_timestamp(filename)
+                    speaker_transcription = self.transcriber.transcribe_with_google(filename)
                     
                     print('⚖️  evaluating script reading...')
                     evaluation_result = self.eloquent.perform_all_evaluation(
@@ -395,7 +347,7 @@ class Worker:
                     f.write(response.content)
                 return True
         except Exception as err:
-            return False
+            raise Exception(f"Downloading fail at {url}: ", err)
 
 if __name__ == '__main__':
     load_dotenv('.env') 
@@ -403,9 +355,3 @@ if __name__ == '__main__':
     worker = Worker()
 
     worker.work()
-
-    
-
-    
-
-    

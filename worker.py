@@ -4,7 +4,7 @@ import time
 import requests
 from dotenv import load_dotenv
 from uuid import uuid4
-import datetime
+from datetime import datetime
 import pytz
 import json
 from src.modules.whisper import Transcriber
@@ -14,12 +14,14 @@ from typing import List, Dict, Any
 import librosa
 from queue import Queue
 import multiprocessing
-from src.modules.enums import AssessmentType
 from src.modules.builders import ScriptReadingPayloadBuilder, QuoteTranslationPayloadBuilder
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer
 
 @dataclass
 class Worker:
     load_dotenv()
+    task_queue: TaskQueue
+    lark_queue: LarkQueue 
     lark: Lark = Lark(
         app_id=os.getenv('APP_ID'),
         app_secret=os.getenv('APP_SECRET')
@@ -39,18 +41,13 @@ class Worker:
     eloquent: EloquentOpenAI = EloquentOpenAI()
     bubble_table_id = os.getenv('BUBBLE_TABLE_ID')
     processed_table_id = os.getenv('PROCESSED_TABLE_ID')
-    is_processing: bool = False
     pending_records = []
     no_of_pending_records = 0
     skipped_records = [] # list of record_id to skipped
-    builded_payload = None
     queue: Queue = Queue()
     script_reading_payload_builder = ScriptReadingPayloadBuilder()
     quote_translation_payload_builder = QuoteTranslationPayloadBuilder()
-
-    def __init__(self):
-        self.script_reading_table_id = self.get_correct_table_id(AssessmentType.SCRIPT_READING)
-        self.quote_translation_table_id = self.get_correct_table_id(AssessmentType.QUOTE_TRANSLATION)
+    
 
     def remove_skipped_records(self):
         for index, current_record in enumerate(self.pending_records):
@@ -166,6 +163,58 @@ class Worker:
         )
 
         return is_done
+    
+    @retry()
+    def process(self, task: Task):
+
+        print(task)
+
+        pass
+    
+    def switch_cases(self, task: Task):
+        if task.type == 'Script Reading':
+            self.process(task)
+        elif task.type == 'Quote Translation':
+            pass
+    
+    def sync(self):
+        print('🚀 syncing from lark...')
+
+        records = self.lark_queue.get_items()
+
+        transformed_records = DataTransformer.convert_raw_lark_record_to_dict(
+            records, 
+            [
+                "name",
+                "user_id",
+                "email",
+                "assessment_type",
+                "audio_url",
+                "given_transcription",
+                "status"
+            ]
+        )
+
+        self.task_queue.enqueue_many(transformed_records)
+
+        return transformed_records
+
+    
+    def processing(self):
+        print("Worker is processing...")
+
+        transformed_records = self.sync()
+
+        while True:
+            if not self.task_queue.is_empty():
+                task = self.task_queue.pop()
+
+                self.switch_cases(task)
+            else:
+                self.sync()
+                time.sleep(3)
+
+
 
     def work(self):
         print("worker initiated...")
@@ -287,6 +336,15 @@ class Worker:
         # skipped this record
         self.skipped_records.append(record['record_id'])
 
+    def get_current_timestamp(self):
+        # Get the current datetime
+        current_datetime = datetime.now()
+
+        # Format the current datetime as a string
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
+
+        return formatted_datetime
+
     def process_script_reading_record(self, record):
         retries = 0
         max_retries = 3
@@ -302,7 +360,9 @@ class Worker:
                 email = record["email"]
                 given_transcription = record["given_transcription"]
 
-                filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}-{time.time()}.mp3")
+                current_timestamp = self.get_current_timestamp()
+
+                filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}-{current_timestamp}.mp3")
 
                 # download the mp3 file
                 is_downloaded = self.download_mp3(audio_url, filename)
@@ -341,17 +401,30 @@ class Worker:
                     f.write(response.content)
                 return True
         except Exception as err:
-            return False
+            raise Exception(f"Downloading fail at {url}: ", err)
 
 if __name__ == '__main__':
-    load_dotenv('.env') 
+    load_dotenv('.env')
+    task_queue = TaskQueue()
+    lark = Lark(
+        app_id=os.getenv("APP_ID"),
+        app_secret=os.getenv("APP_SECRET")
+    )
 
-    worker = Worker()
+    base_manager = BitableManager(
+        lark_client=lark,
+        bitable_token=os.getenv("BITABLE_TOKEN")
+    )
 
-    worker.work()
+    lark_queue = LarkQueue(
+        base_manager=base_manager,
+        bitable_table_id=os.getenv("BUBBLE_TABLE_ID")
+    )
 
-    
+    worker = Worker(
+        task_queue=task_queue, 
+        lark_queue=lark_queue
+    )
 
-    
-
-    
+    # worker.work()
+    worker.processing()

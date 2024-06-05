@@ -88,7 +88,7 @@ class BitableManager:
             return response
         return response
 
-    def get_records(self, table_id, filter=None):
+    def get_records(self, table_id, filter=None) -> List[AppTableRecord]:
         has_more = True
         page_token = None
         records = []
