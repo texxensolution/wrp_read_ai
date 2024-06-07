@@ -1,17 +1,11 @@
-import numpy as np
 import joblib
 import librosa
-from dataclasses import dataclass, field
-from sklearn.svm import SVC
+import numpy as np
 
-@dataclass
-class AudioClassifier:
-    classifier_model_path: str
-    classifier: SVC = field(init=False)
-
-    def __post_init__(self):
-        self.classifier = joblib.load(self.classifier_model_path)
-
+class VoiceClassifier:
+    def __init__(self, model_path: str):
+        self.clf = joblib.load(model_path)
+    
     def extract_features(self, y, sr):
         try:
             # Extracting various features
@@ -61,8 +55,9 @@ class AudioClassifier:
 
     def predict(self, y, sr):
         features = [self.extract_features(y, sr)]
-        return self.classifier.predict(features)
+        return self.clf.predict(features)[0]
 
     def predict_prob(self, y, sr):
         features = [self.extract_features(y, sr)]
-        return self.classifier.predict_proba(features)
+        return self.clf.predict_proba(features)
+    

@@ -26,34 +26,29 @@ class FileManager:
             print(f"Failed to download file. Status code: {response.status_code}")
 
     def upload(self, filepath):
-        if not os.path.exists(filepath):
-            return
-        filename = os.path.split(filepath)[1]
-        file = open(filepath, 'rb')
+        try:
+            if not os.path.exists(filepath):
+                return
+            filename = os.path.split(filepath)[1]
+            file = open(filepath, 'rb')
 
-        size = self.get_file_size(filepath)
+            size = self.get_file_size(filepath)
 
-        request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
-            .request_body(UploadAllMediaRequestBody.builder()
-                          .file_name(filename)
-                          .parent_type("bitable_file")
-                          .parent_node(self.bitable_token)
-                          .size(size)
-                          .file(file)
-                          .build()) \
-            .build()
+            request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
+                .request_body(UploadAllMediaRequestBody.builder()
+                            .file_name(filename)
+                            .parent_type("bitable_file")
+                            .parent_node(self.bitable_token)
+                            .size(size)
+                            .file(file)
+                            .build()) \
+                .build()
 
-        response: UploadAllMediaResponse = self.lark.drive.v1.media.upload_all(request)
+            response: UploadAllMediaResponse = self.lark.drive.v1.media.upload_all(request)
 
-        if not response.success():
-            logger.error(
-                f"client.drive.v1.media.aupload_all failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
-            )
-            return None
-
-        logger.info(f"File uploaded: {filepath}, message: {response.msg}, timestamp: {datetime.datetime.now()}")
-
-        return response.data.file_token
+            return response.data.file_token
+        except Exception as err:
+            raise Exception(f"Uploaded failed code: {response}, msg: {response.msg}")
 
 
     def get_file_size(self, filepath):

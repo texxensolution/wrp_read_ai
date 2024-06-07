@@ -14,15 +14,16 @@ from typing import List, Dict, Any, Callable
 import librosa
 from queue import Queue
 import multiprocessing
-from src.modules.builders import ScriptReadingPayloadBuilder, QuoteTranslationPayloadBuilder
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, ScriptReader
+from src.modules.builders import QuoteTranslationPayloadBuilder
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier
+from src.modules.process import ScriptReadingEvaluator
 
 @dataclass
 class Worker:
     load_dotenv()
     task_queue: TaskQueue
     lark_queue: LarkQueue 
-    script_reader: ScriptReader
+    script_reader: ScriptReadingEvaluator
 
     def get_correct_table_id(self, assessment_type: str):
         if assessment_type == "Script Reading":
@@ -65,7 +66,6 @@ class Worker:
         )
 
         return is_done
-    
     
     def switch_cases(self, task: Task):
         if task.type == 'Script Reading':
@@ -110,7 +110,6 @@ class Worker:
                 self.sync()
                 time.sleep(3)
 
-               
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
             response = self.bitable_manager.update_record(
@@ -132,7 +131,6 @@ class Worker:
         formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
 
         return formatted_datetime
-
 
 if __name__ == '__main__':
     load_dotenv('.env')
@@ -163,12 +161,14 @@ if __name__ == '__main__':
 
     transcriber = Transcriber()
 
-    script_reader = ScriptReader(
+    classifier = VoiceClassifier('classifier.joblib')
+
+    script_reader = ScriptReadingEvaluator(
         base_manager=base_manager,
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
-        destination_table_id=os.getenv("SCRIPT_READING_TABLE_ID")
+        classifier=classifier
     )
 
     worker = Worker(

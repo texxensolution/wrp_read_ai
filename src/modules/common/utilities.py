@@ -27,3 +27,7 @@ def download_mp3(url, file_name):
                 return True
         except Exception as err:
             raise Exception(f"Downloading fail at {url}: ", err)
+
+def map_value(value, lowest_value, max_value):
+        return (value * max_value) + lowest_value
+    
