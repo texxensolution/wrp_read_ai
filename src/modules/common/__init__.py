@@ -9,3 +9,4 @@ from .TextPreprocessor import TextPreprocessor
 from .TranscriptionProcessor import TranscriptionProcessor
 from .AudioProcessor import AudioProcessor
 from .VoiceClassifier import VoiceClassifier
+from .PhonemicAnalysis import PhonemicAnalysis
