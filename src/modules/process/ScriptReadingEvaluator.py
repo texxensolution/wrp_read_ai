@@ -8,6 +8,7 @@ from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
 from src.modules.builders import LarkPayloadBuilder
 from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier
+from src.modules.common import PhonemicAnalysis
 from dataclasses import dataclass
 
 @dataclass
@@ -43,6 +44,7 @@ class ScriptReadingEvaluator:
         user_id = payload["user_id"]
         email = payload["email"]
         given_transcription = payload["given_transcription"]
+        script_id = payload['script_id']
 
         filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
 
@@ -62,6 +64,7 @@ class ScriptReadingEvaluator:
             evaluation_result = self.script_reading_evaluation(
                 given_script=given_transcription,
                 transcription=speaker_transcription,
+                script_id=script_id,
                 audio_path=filename
             )
 
@@ -89,6 +92,7 @@ class ScriptReadingEvaluator:
             request_payload = LarkPayloadBuilder.builder() \
                 .add_key_value('email', payload['email']) \
                 .add_key_value('name', payload['name']) \
+                .add_key_value('script_id', payload['script_id']) \
                 .add_key_value('parent_record_id', record_id) \
                 .add_key_value('result', evaluation['result']) \
                 .add_key_value('audio_duration_seconds', evaluation['audio_duration']) \
@@ -96,7 +100,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('words_per_minute', evaluation['words_per_minute']) \
                 .add_key_value('transcription', evaluation['transcription']) \
                 .add_key_value('given_transcription', evaluation['given_transcription']) \
-                .add_key_value('pronunciation', evaluation['score_object']['pronunciation']) \
+                .add_key_value('pronunciation', evaluation['pronunciation_score']) \
                 .add_key_value('enunciation', evaluation['score_object']['enunciation']) \
                 .add_key_value('clarityofexpression', evaluation['score_object']['clarityofexpression']) \
                 .add_key_value('similarity_score', evaluation['similarity_score']) \
@@ -138,7 +142,7 @@ class ScriptReadingEvaluator:
         except Exception as err:
             raise Exception(f"Updating record failed: {record_id}")
 
-    def script_reading_evaluation(self, given_script: str, transcription: str, audio_path: str):
+    def script_reading_evaluation(self, given_script: str, transcription: str, script_id: str, audio_path: str):
         try:
             y, sr = librosa.load(audio_path)
             avg_pause_duration = FeatureExtractor.load_audio(y, sr).calculate_pause_duration()
@@ -175,7 +179,12 @@ class ScriptReadingEvaluator:
             print("pacing_score", pacing_score)
             classification = self.classifier.predict(y, sr)
             print("classification", classification)
+            pronunciation_score = PhonemicAnalysis(
+                transcription=transcription,
+                script_id=script_id
+            ).run_analysis(y, sr)
 
+            print('pronunciation', pronunciation_score)
             scores = {
                 "result": result,
                 "avg_pause_duration": avg_pause_duration,
@@ -190,7 +199,8 @@ class ScriptReadingEvaluator:
                 "wpm_category": wpm_category,
                 "classification": classification,
                 "pitch_consistency": pitch_consistency,
-                "pacing_score": pacing_score
+                "pacing_score": pacing_score,
+                "pronunciation_score": pronunciation_score
             }
 
             return scores

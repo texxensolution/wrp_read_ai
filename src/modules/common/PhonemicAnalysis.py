@@ -146,6 +146,7 @@ class PhonemicAnalysis:
             self.compare_stress()
             self.evaluate_phonetic_accuracy()
             df = self.save_results()
-            return df, self.transcription, self.overall_score, self.stress_mismatches
+            print('overall_score', self.overall_score)
+            return self.overall_score
         except ValueError as e:
             return None, str(e), None, None

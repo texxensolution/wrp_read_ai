@@ -90,7 +90,8 @@ class Worker:
                 "assessment_type",
                 "audio_url",
                 "given_transcription",
-                "status"
+                "status",
+                "script_id"
             ]
         )
 
