@@ -2,6 +2,7 @@ import os
 import json
 import librosa
 import time
+from datetime import datetime
 from typing import Dict, Any
 from src.modules.common.utilities import download_mp3, retry
 from src.modules.ollama import EloquentOpenAI
@@ -10,6 +11,7 @@ from src.modules.lark import BitableManager, FileManager
 from src.modules.builders import LarkPayloadBuilder
 from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier
 from src.modules.common import PhonemicAnalysis
+from src.modules.common import Logger
 from dataclasses import dataclass
 
 @dataclass
@@ -19,7 +21,8 @@ class ScriptReadingEvaluator:
     base_manager: BitableManager
     file_manager: FileManager
     classifier: VoiceClassifier
-    destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID')
+    logs_manager: Logger
+    destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
         return f"""
@@ -52,6 +55,7 @@ class ScriptReadingEvaluator:
 
     
     def process(self, task: Task):
+        time_start = time.time()
         try:
             payload = task.payload
             user_id = payload["user_id"]
@@ -60,6 +64,8 @@ class ScriptReadingEvaluator:
             audio_url = payload['audio_url']
             script_id = payload['script_id']
             name = payload['name']
+
+            no_of_retries = int(payload['no_of_retries'])
             given_transcription = payload['given_transcription']
 
             filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
@@ -78,7 +84,12 @@ class ScriptReadingEvaluator:
                     )
                     raise Exception("File mark as deleted")
             except Exception as err:
+                self.logs_manager.create_record(
+                    message=err,
+                    error_type='Audio Downloading'
+                )
                 print("❗❗❗ Audio downloading failed: ", err)
+                
 
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
@@ -87,6 +98,10 @@ class ScriptReadingEvaluator:
 
             if not file_token:
                 print("❗❗❗ Mark as failed task")
+                self.logs_manager.create_record(
+                    message=err,
+                    error_type='File Token Missing'
+                )
                 return
 
             try:
@@ -95,13 +110,19 @@ class ScriptReadingEvaluator:
                 transcription = TextPreprocessor.normalize(transcription)
                 given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
             except Exception as err:
+                self.logs_manager.create_record(
+                    message=err,
+                    error_type='Transcribing Failure'
+                )
                 print("❗❗❗ Transcribing failed: ", err)
 
             try:
                 print('⚖️  evaluating script reading...')
                 y, sr = librosa.load(converted_audio_path)
                 audio_duration = librosa.get_duration(y=y)
+                print("🎯 calculating similarity score...")
                 similarity_score = self.similarity_score(transcription, given_transcription)
+                print("🎶 extracting audio features...")
                 avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
                 pitch_std = FeatureExtractor(y, sr).pitch_consistency()
                 pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
@@ -116,18 +137,17 @@ class ScriptReadingEvaluator:
                 result, evaluation, score_json = self.ai_grading(transcription, given_transcription)
                 pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
                 metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
+                print("🔊 calculating voice classification...")
                 voice_classification = self.voice_classification(y, sr)
                 predicted_classification = "Good" if voice_classification == 1 else "Bad"
             except Exception as err:
+                self.logs_manager.create_record(
+                    message=err,
+                    error_type='Evaluation Failure'
+                )
                 print("❗❗❗ Evaluation failed: ", err)
 
-            # evaluation and download the file first
-            # evaluation = self.evaluate(payload)
-            # audio_path = evaluation['audio_path']
-            # file_token = self.file_manager.upload(audio_path)
-
-            # predicted classification
-
+            print("📦 packaging payload...")
             request_payload = LarkPayloadBuilder.builder() \
                 .add_key_value('email', email) \
                 .add_key_value('name', name) \
@@ -152,6 +172,8 @@ class ScriptReadingEvaluator:
                 .attach_media_file_token('audio', file_token) \
                 .build()
 
+
+            print("📤 uploading a record on lark base...")
             response = self.base_manager.create_record(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
@@ -174,14 +196,30 @@ class ScriptReadingEvaluator:
                     clarity=score_json['clarityofexpression']
                 )
 
+                time_end = time.time()
+
+                processing_duration = time_end - time_start
+
                 if remarks >= 80:
-                    print(f"done processing: name={name}, remarks: ✅, score: {remarks}\n\n")
+                    print(f"✔️ done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
                 else:
-                    print(f"done processing: name={name}, remarks: ❌, score: {remarks}\n\n")
+                    print(f"✔️ done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
+                
+            
 
             return is_done
         except Exception as err:
             print(f"❗❗❗ ScriptReadingProcess error: {err}")
+            self.logs_manager.create_record(
+                message=err,
+                error_type='General Error'
+            )
+            self.update_number_of_retries(
+                record_id=record_id,
+                previous_count=no_of_retries
+            )
+            print("🔁 Retrying in 3 seconds...")
+            time.sleep(3)
             return False
 
 
@@ -189,6 +227,17 @@ class ScriptReadingEvaluator:
         score = (((pronunciation / 5) * 0.20) + ((enunciation / 5) * 0.20) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.20) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10) + ((clarity / 5) * 0.05)) * 100
         return round(score)
 
+    def update_number_of_retries(self, record_id: str, previous_count: int):
+        try:
+            self.base_manager.update_record(
+                table_id=os.getenv('BUBBLE_TABLE_ID'),
+                record_id=record_id,
+                fields={
+                    "no_of_retries": previous_count + 1
+                }
+            )
+        except Exception as err:
+            print(f"❗❗❗ Updating retry count failed:", err)
 
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
@@ -214,7 +263,7 @@ class ScriptReadingEvaluator:
             )
             return True
         except Exception as err:
-            raise Exception(f"Updating record failed: {record_id}")
+            raise Exception(f"❗❗❗ Updating record failed: {record_id}")
     
     def pronunciation_grading(self, transcription: str, script_id: str, y, sr):
         return PhonemicAnalysis(

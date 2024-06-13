@@ -1,21 +1,14 @@
 from src.modules.lark import Lark, BitableManager, FileManager
 import os
 import time
-import requests
 from dotenv import load_dotenv
-from uuid import uuid4
 from datetime import datetime
-import pytz
-import json
 from src.modules.whisper import Transcriber
 from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
 from typing import List, Dict, Any, Callable
-import librosa
 from queue import Queue
-import multiprocessing
-from src.modules.builders import QuoteTranslationPayloadBuilder
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 @dataclass
@@ -73,9 +66,21 @@ class Worker:
             self.script_reader.process(task)
         elif task.type == 'Quote Translation':
             self.quote_translation.process(task)
+
+    def clear_console(self):
+        if os.system('nt'):
+            _ = os.system('cls')
+        else:
+            _ = os.system('clear')
     
     def sync(self):
-        print('🚀 syncing from lark...')
+        # Get the current date and time
+        now = datetime.now()
+
+        # Format the date and time
+        formatted_time = now.strftime("%A at %I:%M %p")
+
+        print(f'🔄 syncing from lark at {formatted_time}')
 
         records = self.lark_queue.get_items()
 
@@ -92,21 +97,33 @@ class Worker:
                 "audio_url",
                 "given_transcription",
                 "status",
-                "script_id"
+                "script_id",
+                "no_of_retries"
             ]
         )
-
         self.task_queue.enqueue_many(transformed_records)
+    
+    def calculate_queued_task_display(self, queue_length: int):
+        human_queue_str = ""
+        for i in range(queue_length):
+            if i % 2 == 0:
+                human_queue_str += "🚶‍♂️"
+            else:
+                human_queue_str += "🚶‍♀️"
+        return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)
+
 
     def processing(self):
-        print("Worker is processing...")
+        print("👷 Worker is processing...")
 
         transformed_records = self.sync()
 
         while True:
             if not self.task_queue.is_empty():
                 queue_length = self.task_queue.remaining()
-                print('📦 current items in the queue:', queue_length)
+                queue_display_str = self.calculate_queued_task_display(queue_length)
+                print(queue_display_str)
+
                 task = self.task_queue.pop()
                 name = task.payload['name']
                 email = task.payload['email']
@@ -169,12 +186,17 @@ if __name__ == '__main__':
 
     classifier = VoiceClassifier('classifier.joblib')
 
+    logs_manager = Logger(
+        base_manager=base_manager
+    )
+
     script_reader = ScriptReadingEvaluator(
         base_manager=base_manager,
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
-        classifier=classifier
+        classifier=classifier,
+        logs_manager=logs_manager
     )
 
     quote_translation = QuoteTranslationEvaluator(
@@ -187,7 +209,7 @@ if __name__ == '__main__':
         task_queue=task_queue, 
         lark_queue=lark_queue,
         script_reader=script_reader,
-        quote_translation=quote_translation
+        quote_translation=quote_translation,
     )
 
     worker.processing()
