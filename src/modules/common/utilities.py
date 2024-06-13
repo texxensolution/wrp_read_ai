@@ -25,8 +25,9 @@ def download_mp3(url, file_name):
                 with open(file_name, 'wb') as f:
                     f.write(response.content)
                 return True
-        except Exception as err:
-            raise Exception(f"Downloading fail at {url}: ", err)
+        except FileNotFoundError as err:
+            return False
+            raise FileNotFoundError(f"Downloading fail at {url}: ", err)
 
 def map_value(value, lowest_value, max_value):
         return (value * max_value) + lowest_value

@@ -11,7 +11,6 @@ class Task:
     failed_at: datetime = None
     no_of_retries: int = 0
     
-
     def increment_retry(self):
         self.no_of_retries += 1
 

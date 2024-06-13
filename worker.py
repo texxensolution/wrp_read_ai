@@ -16,7 +16,7 @@ from queue import Queue
 import multiprocessing
 from src.modules.builders import QuoteTranslationPayloadBuilder
 from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier
-from src.modules.process import ScriptReadingEvaluator
+from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 @dataclass
 class Worker:
@@ -24,6 +24,7 @@ class Worker:
     task_queue: TaskQueue
     lark_queue: LarkQueue 
     script_reader: ScriptReadingEvaluator
+    quote_translation: QuoteTranslationEvaluator
 
     def get_correct_table_id(self, assessment_type: str):
         if assessment_type == "Script Reading":
@@ -71,7 +72,7 @@ class Worker:
         if task.type == 'Script Reading':
             self.script_reader.process(task)
         elif task.type == 'Quote Translation':
-            pass
+            self.quote_translation.process(task)
     
     def sync(self):
         print('🚀 syncing from lark...')
@@ -104,8 +105,12 @@ class Worker:
 
         while True:
             if not self.task_queue.is_empty():
+                queue_length = self.task_queue.remaining()
+                print('📦 current items in the queue:', queue_length)
                 task = self.task_queue.pop()
-
+                name = task.payload['name']
+                email = task.payload['email']
+                print(f'⚙️  processing: name={name}, email={email}...')
                 self.switch_cases(task)
             else:
                 self.sync()
@@ -172,11 +177,17 @@ if __name__ == '__main__':
         classifier=classifier
     )
 
+    quote_translation = QuoteTranslationEvaluator(
+        file_manager=file_manager,
+        base_manager=base_manager,
+        openai=eloquent
+    )
+
     worker = Worker(
         task_queue=task_queue, 
         lark_queue=lark_queue,
-        script_reader=script_reader
+        script_reader=script_reader,
+        quote_translation=quote_translation
     )
 
-    # worker.work()
     worker.processing()

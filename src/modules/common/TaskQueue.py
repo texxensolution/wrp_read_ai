@@ -14,6 +14,9 @@ class TaskQueue:
 
     def pop(self) -> Task:
         return self.tasks.get()
+
+    def remaining(self):
+        return self.tasks.qsize()
     
     def enqueue_many(self, tasks: List[Dict[str, Any]]):
         for task in tasks:

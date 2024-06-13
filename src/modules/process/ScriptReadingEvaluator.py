@@ -1,8 +1,9 @@
 import os
 import json
 import librosa
+import time
 from typing import Dict, Any
-from src.modules.common.utilities import download_mp3
+from src.modules.common.utilities import download_mp3, retry
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
@@ -39,76 +40,115 @@ class ScriptReadingEvaluator:
             Given Script: {given_transcript}
         """
 
-    def evaluate(self, payload: Dict[str, Any]):
-        audio_url = payload['audio_url']
-        user_id = payload["user_id"]
-        email = payload["email"]
-        given_transcription = payload["given_transcription"]
-        script_id = payload['script_id']
-
-        filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
-
-        print(filename)
+    @retry()
+    def upload_audio_to_lark(self, filename):
         try:
-            # download the mp3 file
-            is_downloaded = download_mp3(audio_url, filename)
-
-            # mp3 to wav conversion
-            converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
-            print('converted', converted_audio_path)
-
-            print('📜 transcribing...')
-            speaker_transcription = self.transcriber.transcribe_with_google(audio_path=converted_audio_path)
-            
-            print('⚖️  evaluating script reading...')
-            evaluation_result = self.script_reading_evaluation(
-                given_script=given_transcription,
-                transcription=speaker_transcription,
-                script_id=script_id,
-                audio_path=filename
-            )
-
-            # add audio path
-            evaluation_result["audio_path"] = filename
-
-            return evaluation_result
+            print("📤 uploading file to lark base...")
+            file_token = self.file_manager.upload(filename)
+            return file_token
         except Exception as err:
-            print("Error evaluation: ",err)
-            raise Exception("Error Script Reading Evaluation: ", err)
+            print("❗❗❗ Uploading failed:", err)
+            return None
+
     
     def process(self, task: Task):
         try:
             payload = task.payload
+            user_id = payload["user_id"]
+            email = payload["email"]
             record_id = payload['record_id']
+            audio_url = payload['audio_url']
+            script_id = payload['script_id']
+            name = payload['name']
+            given_transcription = payload['given_transcription']
+
+            filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
+
+            try:
+                # download the mp3 file
+                is_downloaded = download_mp3(audio_url, filename)
+
+                if not is_downloaded:
+                    response = self.base_manager.update_record(
+                        table_id=os.getenv('BUBBLE_TABLE_ID'), 
+                        record_id=record_id, 
+                        fields={
+                            "status": "file deleted"
+                        }
+                    )
+                    raise Exception("File mark as deleted")
+            except Exception as err:
+                print("❗❗❗ Audio downloading failed: ", err)
+
+            # mp3 to wav conversion
+            converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
+
+            file_token = self.upload_audio_to_lark(filename)
+
+            if not file_token:
+                print("❗❗❗ Mark as failed task")
+                return
+
+            try:
+                print('📜 transcribing...')
+                transcription = self.transcriber.transcribe_with_google(converted_audio_path)
+                transcription = TextPreprocessor.normalize(transcription)
+                given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
+            except Exception as err:
+                print("❗❗❗ Transcribing failed: ", err)
+
+            try:
+                print('⚖️  evaluating script reading...')
+                y, sr = librosa.load(converted_audio_path)
+                audio_duration = librosa.get_duration(y=y)
+                similarity_score = self.similarity_score(transcription, given_transcription)
+                avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
+                pitch_std = FeatureExtractor(y, sr).pitch_consistency()
+                pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
+                words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
+                wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
+                pronunciation_score = self.pronunciation_grading(
+                    transcription=transcription,
+                    script_id=script_id,
+                    y=y,
+                    sr=sr
+                )
+                result, evaluation, score_json = self.ai_grading(transcription, given_transcription)
+                pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
+                metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
+                voice_classification = self.voice_classification(y, sr)
+                predicted_classification = "Good" if voice_classification == 1 else "Bad"
+            except Exception as err:
+                print("❗❗❗ Evaluation failed: ", err)
+
             # evaluation and download the file first
-            evaluation = self.evaluate(payload)
-            audio_path = evaluation['audio_path']
-            file_token = self.file_manager.upload(audio_path)
+            # evaluation = self.evaluate(payload)
+            # audio_path = evaluation['audio_path']
+            # file_token = self.file_manager.upload(audio_path)
 
             # predicted classification
-            predicted_classification = "Good" if evaluation['classification'] == 1 else "Bad"
-            print("classification: ", evaluation['classification'], predicted_classification)
 
             request_payload = LarkPayloadBuilder.builder() \
-                .add_key_value('email', payload['email']) \
-                .add_key_value('name', payload['name']) \
-                .add_key_value('script_id', payload['script_id']) \
+                .add_key_value('email', email) \
+                .add_key_value('name', name) \
+                .add_key_value('script_id', script_id) \
                 .add_key_value('parent_record_id', record_id) \
-                .add_key_value('result', evaluation['result']) \
-                .add_key_value('audio_duration_seconds', evaluation['audio_duration']) \
-                .add_key_value('avg_pause_duration', evaluation['avg_pause_duration']) \
-                .add_key_value('words_per_minute', evaluation['words_per_minute']) \
-                .add_key_value('transcription', evaluation['transcription']) \
-                .add_key_value('given_transcription', evaluation['given_transcription']) \
-                .add_key_value('pronunciation', evaluation['pronunciation_score']) \
-                .add_key_value('enunciation', evaluation['score_object']['enunciation']) \
-                .add_key_value('clarityofexpression', evaluation['score_object']['clarityofexpression']) \
-                .add_key_value('similarity_score', evaluation['similarity_score']) \
+                .add_key_value('result', result) \
+                .add_key_value('audio_duration_seconds', audio_duration) \
+                .add_key_value('avg_pause_duration', avg_pause_duration) \
+                .add_key_value('words_per_minute', words_per_minute) \
+                .add_key_value('transcription', transcription) \
+                .add_key_value('given_transcription', given_transcription) \
+                .add_key_value('pronunciation', pronunciation_score) \
+                .add_key_value('enunciation', score_json['enunciation']) \
+                .add_key_value('clarityofexpression', score_json['clarityofexpression']) \
+                .add_key_value('similarity_score', similarity_score) \
                 .add_key_value('predicted_classification', predicted_classification) \
-                .add_key_value('evaluation', evaluation['evaluation']) \
-                .add_key_value('wpm_category', evaluation['wpm_category']) \
-                .add_key_value('pitch_consistency', evaluation['pitch_consistency']) \
-                .add_key_value('pacing_score', evaluation['pacing_score']) \
+                .add_key_value('evaluation', evaluation) \
+                .add_key_value('wpm_category', wpm_category) \
+                .add_key_value('pitch_consistency', pitch_consistency) \
+                .add_key_value('pacing_score', pacing_score) \
+                .add_key_value('metadata', metadata) \
                 .attach_media_file_token('audio', file_token) \
                 .build()
 
@@ -123,10 +163,31 @@ class ScriptReadingEvaluator:
                 record_id=record_id
             )
 
+            if is_done:
+                remarks = self.calculate_remarks(
+                    pronunciation=pronunciation_score,
+                    enunciation=int(score_json['enunciation']),
+                    wpm_category=wpm_category,
+                    similarity_score=similarity_score,
+                    pitch_consistency=pitch_consistency,
+                    pacing_score=pacing_score,
+                    clarity=score_json['clarityofexpression']
+                )
+
+                if remarks >= 80:
+                    print(f"done processing: name={name}, remarks: ✅, score: {remarks}\n\n")
+                else:
+                    print(f"done processing: name={name}, remarks: ❌, score: {remarks}\n\n")
+
             return is_done
         except Exception as err:
-            print(f"ScriptReadingProcess error: {err}")
+            print(f"❗❗❗ ScriptReadingProcess error: {err}")
             return False
+
+
+    def calculate_remarks(self, pronunciation, enunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, clarity):
+        score = (((pronunciation / 5) * 0.20) + ((enunciation / 5) * 0.20) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.20) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10) + ((clarity / 5) * 0.05)) * 100
+        return round(score)
 
 
     def mark_current_record_as_done(self, table_id: str, record_id: str):
@@ -141,70 +202,56 @@ class ScriptReadingEvaluator:
             return True
         except Exception as err:
             raise Exception(f"Updating record failed: {record_id}")
-
-    def script_reading_evaluation(self, given_script: str, transcription: str, script_id: str, audio_path: str):
+        
+    def current_record_dont_have_recording(self, table_id: str, record_id: str):
         try:
-            y, sr = librosa.load(audio_path)
-            avg_pause_duration = FeatureExtractor.load_audio(y, sr).calculate_pause_duration()
-            print("pause_ duration", avg_pause_duration)
-            audio_duration = librosa.get_duration(y=y, sr=sr)
-            print("audio_duration", audio_duration)
-            processed_transcription = TextPreprocessor.normalize(transcription)
-            print("processed_transcription", processed_transcription)
-            given_script = TextPreprocessor.normalize_text_with_new_lines(given_script)
-            print("given_script", given_script)
-            words_per_minute = AudioProcessor.calculate_words_per_minute(processed_transcription, audio_duration)
-            print("wpm", words_per_minute)
-            similarity_score = TranscriptionProcessor.compute_distance(given_script, transcription)
-            print("similarity", similarity_score)
-            # pitch_std = FeatureExtractor.load_audio(y, sr).pitch_consistency()
-            pitch_std = FeatureExtractor.load_audio(y, sr).pitch_consistency()
-            print("pitch_std", pitch_std)
-            pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
-            print("pitch_cons", pitch_consistency)
-            prompt = self.generate_prompt(
-                speaker_transcript=transcription, 
-                given_transcript=given_script
+            response = self.base_manager.update_record(
+                table_id=table_id, 
+                record_id=record_id, 
+                fields={
+                    "status": "file deleted"
+                }
             )
-            print("prompt", prompt)
-            result = self.eloquent.evaluate(prompt)
-            print("result", result)
-            captured_json_result = TextPreprocessor.get_json_from_text(result)
-            print("captured_json_result", captured_json_result)
-            evaluation = TextPreprocessor.remove_json_object_from_texts(result)
-            print("evaluation", evaluation)
-            wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
-            print("wpm_category", wpm_category)
-            pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
-            print("pacing_score", pacing_score)
-            classification = self.classifier.predict(y, sr)
-            print("classification", classification)
-            pronunciation_score = PhonemicAnalysis(
-                transcription=transcription,
-                script_id=script_id
-            ).run_analysis(y, sr)
-
-            print('pronunciation', pronunciation_score)
-            scores = {
-                "result": result,
-                "avg_pause_duration": avg_pause_duration,
-                "audio_duration": audio_duration,
-                "words_per_minute": words_per_minute,
-                "transcription": processed_transcription,
-                "given_transcription": given_script,
-                "similarity_score": similarity_score,
-                "score_object": captured_json_result,
-                "evaluation": evaluation.strip(),
-                "audio_path": audio_path,
-                "wpm_category": wpm_category,
-                "classification": classification,
-                "pitch_consistency": pitch_consistency,
-                "pacing_score": pacing_score,
-                "pronunciation_score": pronunciation_score
-            }
-
-            return scores
+            return True
         except Exception as err:
-            print("Error script reading evaluation:", err)
+            raise Exception(f"Updating record failed: {record_id}")
+    
+    def pronunciation_grading(self, transcription: str, script_id: str, y, sr):
+        return PhonemicAnalysis(
+            transcription=transcription,
+            script_id=script_id
+        ).run_analysis(y, sr)
+    
+    def similarity_score(self, transcription: str, given_script: str):
+        return TranscriptionProcessor.compute_distance(
+            transcription=transcription,
+            given_script=given_script
+        )
+    
+    def pitch_stability_score(self, y, sr):
+        pitch_std = FeatureExtractor(y, sr).pitch_consistency()
+        return AudioProcessor.determine_pitch_consistency(pitch_std)
+
+    def voice_classification(self, y, sr):
+        return self.classifier.predict(y, sr)
+    
+    def extract_metadata(self, y, sr):
+        return FeatureExtractor(y, sr).extract_audio_quality_as_json()
+
+    def calculate_wpm(self, transcription: str, audio_duration):
+        return AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
+
+    def ai_grading(self, transcription: str, given_script: str):
+        combined_prompt = self.generate_prompt(
+            speaker_transcript=transcription,
+            given_transcript=given_script
+        )
+
+        result = self.eloquent.evaluate(combined_prompt)
+
+        evaluation = TextPreprocessor.remove_json_object_from_texts(result)
+        evaluation_json = TextPreprocessor.get_json_from_text(result)
+
+        return result, evaluation, evaluation_json
 
 

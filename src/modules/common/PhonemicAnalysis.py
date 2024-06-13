@@ -23,7 +23,6 @@ class PhonemicAnalysis:
         record = self.find_record('script_id', script_id)
         self.expected_stress = record['expected_stressed'].replace("'", '"') # Convert string to dictionary
         self.expected_stress = json.loads(self.expected_stress)
-        print(type(self.expected_stress))
         self.script = record['script']
         self.phonetic_rules = record['phonetic_rules'].replace("'", '"')  # Convert string to dictionary
         self.phonetic_rules = json.loads(self.phonetic_rules)
@@ -146,7 +145,6 @@ class PhonemicAnalysis:
             self.compare_stress()
             self.evaluate_phonetic_accuracy()
             df = self.save_results()
-            print('overall_score', self.overall_score)
             return self.overall_score
         except ValueError as e:
             return None, str(e), None, None
