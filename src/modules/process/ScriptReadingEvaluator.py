@@ -4,7 +4,7 @@ import librosa
 import time
 from datetime import datetime
 from typing import Dict, Any
-from src.modules.common.utilities import download_mp3, retry
+from src.modules.common.utilities import download_mp3, retry, delete_file
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
@@ -53,7 +53,6 @@ class ScriptReadingEvaluator:
             print("❗❗❗ Uploading failed:", err)
             return None
 
-    
     def process(self, task: Task):
         time_start = time.time()
         try:
@@ -90,7 +89,6 @@ class ScriptReadingEvaluator:
                 )
                 print("❗❗❗ Audio downloading failed: ", err)
                 
-
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
 
@@ -106,6 +104,7 @@ class ScriptReadingEvaluator:
 
             try:
                 print('📜 transcribing...')
+                # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
                 transcription = self.transcriber.transcribe_with_google(converted_audio_path)
                 transcription = TextPreprocessor.normalize(transcription)
                 given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
@@ -204,7 +203,6 @@ class ScriptReadingEvaluator:
                     print(f"✔️ done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
                 else:
                     print(f"✔️ done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
-                
             
 
             return is_done
@@ -221,7 +219,10 @@ class ScriptReadingEvaluator:
             print("🔁 Retrying in 3 seconds...")
             time.sleep(3)
             return False
-
+        finally:
+            # cleanup media files
+            delete_file(filename)
+            delete_file(converted_audio_path)
 
     def calculate_remarks(self, pronunciation, enunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, clarity):
         score = (((pronunciation / 5) * 0.20) + ((enunciation / 5) * 0.20) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.20) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10) + ((clarity / 5) * 0.05)) * 100

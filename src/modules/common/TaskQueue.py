@@ -23,6 +23,9 @@ class TaskQueue:
             type = task['assessment_type']
             created_task = Task(payload=task, type=type)
             self.tasks.put(created_task)
+
+    def list_queued_items(self):
+        return list(self.tasks.queue)
     
     # after 5 mins
     def can_reprocess_again(self, task: Task) -> bool:

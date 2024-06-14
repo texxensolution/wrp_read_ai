@@ -1,6 +1,9 @@
-from src.modules.lark import Lark, BitableManager, FileManager
 import os
 import time
+import json
+import asyncio
+import websockets
+from src.modules.lark import Lark, BitableManager, FileManager
 from dotenv import load_dotenv
 from datetime import datetime
 from src.modules.whisper import Transcriber
@@ -8,8 +11,9 @@ from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
 from typing import List, Dict, Any, Callable
 from queue import Queue
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
+
 
 @dataclass
 class Worker:
@@ -25,54 +29,12 @@ class Worker:
         elif assessment_type == "Quote Translation":
             return os.getenv('QUOTE_TRANSLATION_TABLE_ID')
 
-    def job_processing_quote_translation(self, record, destination_table_id: str):
-        record_id = record["record_id"]
-
-        evaluation = self.process_quote_translation_record(
-            record=record,
-        )
-        
-        if evaluation is None:
-            return
-
-        audio_path = evaluation['audio_path']
-
-        file_token = self.file_manager.upload(audio_path)
-
-        payload = self.create_quote_translation_payload(
-            record=record, 
-            evaluation=evaluation
-        ) \
-            .attach_file_token_to_payload(file_token=file_token) \
-            .build_payload()
-
-        print('payload', payload)
-
-        response = self.bitable_manager.create_record(
-            table_id=destination_table_id, 
-            fields=payload
-        )
-
-        # update the record and mark as done
-        is_done = self.mark_current_record_as_done(
-            table_id=self.bubble_table_id,
-            record_id=record_id
-        )
-
-        return is_done
-    
     def switch_cases(self, task: Task):
         if task.type == 'Script Reading':
             self.script_reader.process(task)
         elif task.type == 'Quote Translation':
             self.quote_translation.process(task)
 
-    def clear_console(self):
-        if os.system('nt'):
-            _ = os.system('cls')
-        else:
-            _ = os.system('clear')
-    
     def sync(self):
         # Get the current date and time
         now = datetime.now()
@@ -112,7 +74,6 @@ class Worker:
                 human_queue_str += "🚶‍♀️"
         return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)
 
-
     def processing(self):
         print("👷 Worker is processing...")
 
@@ -151,11 +112,14 @@ class Worker:
         current_datetime = datetime.now()
 
         # Format the current datetime as a string
-        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
         return formatted_datetime
 
-if __name__ == '__main__':
+async def websocket_handler(websocket, path, worker: Worker):
+    await worker.websocket_manager.register_client(websocket)
+
+def main():
     load_dotenv('.env')
 
     task_queue = TaskQueue()
@@ -213,3 +177,7 @@ if __name__ == '__main__':
     )
 
     worker.processing()
+
+
+if __name__ == '__main__':
+    main()

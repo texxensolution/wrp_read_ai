@@ -1,4 +1,5 @@
 import requests
+import os
 from functools import wraps
 from time import sleep 
 
@@ -32,3 +33,9 @@ def download_mp3(url, file_name):
 def map_value(value, lowest_value, max_value):
         return (value * max_value) + lowest_value
     
+def delete_file(file_path):
+    try:
+        os.remove(file_path)
+        print(f"File '{file_path}' successfully deleted.")
+    except OSError as e:
+        print(f"Error deleting file '{file_path}': {e}")

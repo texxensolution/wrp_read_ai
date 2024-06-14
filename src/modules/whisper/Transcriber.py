@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import aiohttp
+import asyncio
 import requests
 import os
 import speech_recognition as sr

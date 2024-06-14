@@ -8,7 +8,6 @@ class Logger:
         self.base_manager = base_manager
         self.logs_table_id = os.getenv('LOGS_TABLE_ID')
 
-    @retry
     def create_record(self, message: str, error_type: str):
         try:
             self.base_manager.create_record(
