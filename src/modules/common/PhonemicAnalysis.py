@@ -19,13 +19,37 @@ class PhonemicAnalysis:
         self.dictionary = pd.read_csv('dictionary.csv')
         self.load_script_metadata(script_id)
 
+    def get_phonetic_rules_json(self, script_id: str):
+        phonetics_path = os.path.join('pronunciations', 'phonetics', f"{script_id}_phonetic_rules.json")
+        abs_path = os.path.abspath(phonetics_path)
+        with open(abs_path, 'r') as file:
+            data = json.load(file)
+        return data
+
+    def get_stressed_rules_json(self, script_id: str):
+        stressed_rules_path = os.path.join('pronunciations', 'stressed_rules', f"{script_id}_stressed_rules.json")
+        abs_path = os.path.abspath(stressed_rules_path)
+        with open(abs_path, 'r') as file:
+            data = json.load(file)
+        return data
+
+
     def load_script_metadata(self, script_id: str):
         record = self.find_record('script_id', script_id)
-        self.expected_stress = record['expected_stressed'].replace("'", '"') # Convert string to dictionary
-        self.expected_stress = json.loads(self.expected_stress)
+        phonetic_rules = self.get_phonetic_rules_json(script_id)
+        expected_stress_rules = self.get_stressed_rules_json(script_id)
+
+        self.phonetic_rules = phonetic_rules
+        self.expected_stress = expected_stress_rules 
         self.script = record['script']
-        self.phonetic_rules = record['phonetic_rules'].replace("'", '"')  # Convert string to dictionary
-        self.phonetic_rules = json.loads(self.phonetic_rules)
+
+    # def load_script_metadata(self, script_id: str):
+    #     record = self.find_record('script_id', script_id)
+    #     self.expected_stress = record['expected_stressed'].replace("'", '"') # Convert string to dictionary
+    #     self.expected_stress = json.loads(self.expected_stress)
+    #     self.script = record['script']
+    #     self.phonetic_rules = record['phonetic_rules'].replace("'", '"')  # Convert string to dictionary
+    #     self.phonetic_rules = json.loads(self.phonetic_rules)
    
 
     def find_record(self, column: str, value: str):

@@ -13,7 +13,7 @@ class Logger:
             self.base_manager.create_record(
                 table_id=self.logs_table_id,
                 fields={
-                    "message": message,
+                    "message": str(message),
                     "error_type": error_type
                 }
             )

@@ -36,6 +36,6 @@ def map_value(value, lowest_value, max_value):
 def delete_file(file_path):
     try:
         os.remove(file_path)
-        print(f"File '{file_path}' successfully deleted.")
+        print(f"🗑️  file '{file_path}' deleted...")
     except OSError as e:
         print(f"Error deleting file '{file_path}': {e}")

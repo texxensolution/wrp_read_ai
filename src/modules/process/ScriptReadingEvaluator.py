@@ -199,10 +199,13 @@ class ScriptReadingEvaluator:
 
                 processing_duration = time_end - time_start
 
+                delete_file(filename)
+                delete_file(converted_audio_path)
+
                 if remarks >= 80:
-                    print(f"✔️ done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
+                    print(f"✔️  done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
                 else:
-                    print(f"✔️ done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
+                    print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
             
 
             return is_done
@@ -219,10 +222,7 @@ class ScriptReadingEvaluator:
             print("🔁 Retrying in 3 seconds...")
             time.sleep(3)
             return False
-        finally:
-            # cleanup media files
-            delete_file(filename)
-            delete_file(converted_audio_path)
+            
 
     def calculate_remarks(self, pronunciation, enunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, clarity):
         score = (((pronunciation / 5) * 0.20) + ((enunciation / 5) * 0.20) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.20) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10) + ((clarity / 5) * 0.05)) * 100
