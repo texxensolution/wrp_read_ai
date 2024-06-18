@@ -18,10 +18,5 @@ class TranscriptionProcessor:
         
         # Similarity score: 1 - normalized Levenshtein distance
         levenshtein_similarity = 1 - normalized_distance
-        
-        score = math.ceil(map_value(levenshtein_similarity, 1, 5))
 
-        if score >= 5:
-            return 5
-
-        return score
+        return levenshtein_similarity * 5

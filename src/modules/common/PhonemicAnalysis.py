@@ -22,14 +22,14 @@ class PhonemicAnalysis:
     def get_phonetic_rules_json(self, script_id: str):
         phonetics_path = os.path.join('pronunciations', 'phonetics', f"{script_id}_phonetic_rules.json")
         abs_path = os.path.abspath(phonetics_path)
-        with open(abs_path, 'r') as file:
+        with open(abs_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
         return data
 
     def get_stressed_rules_json(self, script_id: str):
         stressed_rules_path = os.path.join('pronunciations', 'stressed_rules', f"{script_id}_stressed_rules.json")
         abs_path = os.path.abspath(stressed_rules_path)
-        with open(abs_path, 'r') as file:
+        with open(abs_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
         return data
 
