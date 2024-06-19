@@ -119,12 +119,20 @@ class ScriptReadingEvaluator:
                 print('⚖️  evaluating script reading...')
                 y, sr = librosa.load(converted_audio_path)
                 audio_duration = librosa.get_duration(y=y)
+                audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
+
+                if not audio_is_more_than_30_secs:
+                    should_retake = "yes"
+                else:
+                    should_retake = "no"
+
                 print("🎯 calculating similarity score...")
                 similarity_score = self.similarity_score(transcription, given_transcription)
                 print("🎶 extracting audio features...")
                 avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
                 pitch_std = FeatureExtractor(y, sr).pitch_consistency()
-                pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
+                # pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
+                pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
                 words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
                 wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
                 pronunciation_score = self.pronunciation_grading(
@@ -168,6 +176,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('pitch_consistency', pitch_consistency) \
                 .add_key_value('pacing_score', pacing_score) \
                 .add_key_value('metadata', metadata) \
+                .add_key_value('should_retake_exam', should_retake) \
                 .attach_media_file_token('audio', file_token) \
                 .build()
 
