@@ -141,7 +141,7 @@ class ScriptReadingEvaluator:
                     y=y,
                     sr=sr
                 )
-                result, evaluation, score_json = self.ai_grading(transcription, given_transcription)
+                result, evaluation, score_json, cost = self.ai_grading(transcription, given_transcription)
                 pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
                 metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
                 print("🔊 calculating voice classification...")
@@ -177,6 +177,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('pacing_score', pacing_score) \
                 .add_key_value('metadata', metadata) \
                 .add_key_value('should_retake_exam', should_retake) \
+                .add_key_value('request_cost', cost) \
                 .attach_media_file_token('audio', file_token) \
                 .build()
 
@@ -203,19 +204,14 @@ class ScriptReadingEvaluator:
                     pacing_score=pacing_score,
                     clarity=score_json['clarityofexpression']
                 )
-
                 time_end = time.time()
-
                 processing_duration = time_end - time_start
-
                 delete_file(filename)
                 delete_file(converted_audio_path)
-
                 if remarks >= 80:
                     print(f"✔️  done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
                 else:
                     print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
-            
 
             return is_done
         except Exception as err:
@@ -234,7 +230,7 @@ class ScriptReadingEvaluator:
             
 
     def calculate_remarks(self, pronunciation, enunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, clarity):
-        score = (((pronunciation / 5) * 0.20) + ((enunciation / 5) * 0.20) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.20) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10) + ((clarity / 5) * 0.05)) * 100
+        score = (((pronunciation / 5) * 0.40) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10))* 100
         return round(score)
 
     def update_number_of_retries(self, record_id: str, previous_count: int):
@@ -306,11 +302,11 @@ class ScriptReadingEvaluator:
             given_transcript=given_script
         )
 
-        result = self.eloquent.evaluate(combined_prompt)
+        result, cost = self.eloquent.evaluate(combined_prompt)
 
         evaluation = TextPreprocessor.remove_json_object_from_texts(result)
         evaluation_json = TextPreprocessor.get_json_from_text(result)
 
-        return result, evaluation, evaluation_json
+        return result, evaluation, evaluation_json, cost
 
 

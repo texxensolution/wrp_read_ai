@@ -7,6 +7,7 @@ import openai
 import json
 import math
 import joblib
+from tokencost import calculate_prompt_cost
 from .Ollama import Ollama
 from pydub import AudioSegment
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -42,15 +43,21 @@ class EloquentOpenAI:
         """
     
     def evaluate(self, combined_prompt_answer: str):
-        return self.openai.chat.completions.create(
-            model="gpt-3.5-turbo", 
-            messages=[
+        prompt=[
                 {
                     'role': 'system',
                     'content': combined_prompt_answer
                 }
-            ],
-        ).choices[0].message.content
+            ]
+        cost = self.calculate_ai_cost(prompt)
+        return self.openai.chat.completions.create(
+            model="gpt-3.5-turbo", 
+            messages=prompt,
+        ).choices[0].message.content, cost 
+
+    def calculate_ai_cost(self, prompt):
+        return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo'))
+
     
     def evaluate_quote_translation(self, quote: str, transcription: str):
         combined_prompt_answer = self.quote_translation_prompt(transcription, quote)
