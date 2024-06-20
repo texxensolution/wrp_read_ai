@@ -28,17 +28,11 @@ class ScriptReadingEvaluator:
         return f"""
             Instruction:
             Language: Tagalog, English
-            Evaluate the transcription based on the criteria below and include the scores in json format output and brief description on how you evaluate the criterias
-            Json Object: pronunciation, enunciation, clarityofexpression, grammarandsyntax
-
+            Evaluate the transcription based on the criteria below and give brief description on how you evaluate the criterias
             Criterias:
-                    - Pronunciation: Assess the accuracy of word pronunciations according to standard language conventions. Provide a score from 1 (poor) to 5 (excellent).
-                    - Enunciation: Evaluate the clarity and precision in articulating individual sounds and words. Assign a score from 1 (unclear) to 5 (crystal clear).
-                    - Clarity of Expression: Assess how clearly the participant communicates ideas and concepts, avoiding ambiguity or confusion. Provide a score from 1 (unclear) to 5 (crystal clear).
-                    - Grammar and Syntax: Evaluate the correctness of the participant's grammar and sentence structure. Provide a score from 1 (poor) to 5 (excellent).
-                    - Compare the two Speaker Transcription and Given Script
+                - Compare the two Speaker Transcription and Given Script
+                - Include the mispronunciation between speaker transcription and given script
 
-            Penalty System:
             Speaker Transcription: {speaker_transcript}
             Given Script: {given_transcript}
         """
@@ -114,6 +108,7 @@ class ScriptReadingEvaluator:
                     error_type='Transcribing Failure'
                 )
                 print("❗❗❗ Transcribing failed: ", err)
+                return
 
             try:
                 print('⚖️  evaluating script reading...')
@@ -141,7 +136,7 @@ class ScriptReadingEvaluator:
                     y=y,
                     sr=sr
                 )
-                result, evaluation, score_json, cost = self.ai_grading(transcription, given_transcription)
+                evaluation, cost = self.ai_grading(transcription, given_transcription)
                 pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
                 metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
                 print("🔊 calculating voice classification...")
@@ -153,6 +148,10 @@ class ScriptReadingEvaluator:
                     error_type='Evaluation Failure'
                 )
                 print("❗❗❗ Evaluation failed: ", err)
+                return
+
+            time_end = time.time()
+            processing_duration = time_end - time_start
 
             print("📦 packaging payload...")
             request_payload = LarkPayloadBuilder.builder() \
@@ -160,15 +159,12 @@ class ScriptReadingEvaluator:
                 .add_key_value('name', name) \
                 .add_key_value('script_id', script_id) \
                 .add_key_value('parent_record_id', record_id) \
-                .add_key_value('result', result) \
                 .add_key_value('audio_duration_seconds', audio_duration) \
                 .add_key_value('avg_pause_duration', avg_pause_duration) \
                 .add_key_value('words_per_minute', words_per_minute) \
                 .add_key_value('transcription', transcription) \
                 .add_key_value('given_transcription', given_transcription) \
                 .add_key_value('pronunciation', pronunciation_score) \
-                .add_key_value('enunciation', score_json['enunciation']) \
-                .add_key_value('clarityofexpression', score_json['clarityofexpression']) \
                 .add_key_value('similarity_score', similarity_score) \
                 .add_key_value('predicted_classification', predicted_classification) \
                 .add_key_value('evaluation', evaluation) \
@@ -178,6 +174,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('metadata', metadata) \
                 .add_key_value('should_retake_exam', should_retake) \
                 .add_key_value('request_cost', cost) \
+                .add_key_value('processing_duration', processing_duration) \
                 .attach_media_file_token('audio', file_token) \
                 .build()
 
@@ -197,15 +194,11 @@ class ScriptReadingEvaluator:
             if is_done:
                 remarks = self.calculate_remarks(
                     pronunciation=pronunciation_score,
-                    enunciation=int(score_json['enunciation']),
                     wpm_category=wpm_category,
                     similarity_score=similarity_score,
                     pitch_consistency=pitch_consistency,
                     pacing_score=pacing_score,
-                    clarity=score_json['clarityofexpression']
                 )
-                time_end = time.time()
-                processing_duration = time_end - time_start
                 delete_file(filename)
                 delete_file(converted_audio_path)
                 if remarks >= 80:
@@ -229,7 +222,7 @@ class ScriptReadingEvaluator:
             return False
             
 
-    def calculate_remarks(self, pronunciation, enunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, clarity):
+    def calculate_remarks(self, pronunciation, wpm_category, similarity_score, pitch_consistency, pacing_score):
         score = (((pronunciation / 5) * 0.40) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10))* 100
         return round(score)
 
@@ -304,9 +297,6 @@ class ScriptReadingEvaluator:
 
         result, cost = self.eloquent.evaluate(combined_prompt)
 
-        evaluation = TextPreprocessor.remove_json_object_from_texts(result)
-        evaluation_json = TextPreprocessor.get_json_from_text(result)
-
-        return result, evaluation, evaluation_json, cost
+        return result, cost
 
 

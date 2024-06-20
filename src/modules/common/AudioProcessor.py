@@ -86,7 +86,6 @@ class AudioProcessor:
         final_score = (wpm_score + pause_score) / 2
         return round(final_score) + 1
 
-        
     @staticmethod
     def determine_pause_score(avg_pause_duration):
         if avg_pause_duration <= 0.2:
