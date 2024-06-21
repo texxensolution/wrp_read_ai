@@ -126,7 +126,6 @@ class ScriptReadingEvaluator:
                 similarity_score = self.similarity_score(transcription, given_transcription)
                 print("🎶 extracting audio features...")
                 avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
-                pitch_std = FeatureExtractor(y, sr).pitch_consistency()
                 # pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
                 pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
                 words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)

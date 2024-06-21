@@ -22,11 +22,11 @@ class FluencyAnalysis:
         score = prediction['score']
 
         if label == 'Influent' or label == 'Very Influent':
-            return 1 * score
+            return 1 
         elif label == 'Average':
-            return 3 * score
+            return 3
         elif label == 'Fluent':
-            return 5 * score
+            return 5
 
 
     def analyze(self, audio_path: str) -> float:
