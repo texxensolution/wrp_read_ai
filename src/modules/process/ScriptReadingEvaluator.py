@@ -201,6 +201,7 @@ class ScriptReadingEvaluator:
                     similarity_score=similarity_score,
                     pitch_consistency=pitch_consistency,
                     pacing_score=pacing_score,
+                    fluency=fluency
                 )
                 delete_file(filename)
                 delete_file(converted_audio_path)
@@ -225,8 +226,8 @@ class ScriptReadingEvaluator:
             return False
             
 
-    def calculate_remarks(self, pronunciation, wpm_category, similarity_score, pitch_consistency, pacing_score):
-        score = (((pronunciation / 5) * 0.40) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10))* 100
+    def calculate_remarks(self, pronunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, fluency):
+        score = (((pronunciation / 5) * 0.25) ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10))* 100
         return round(score)
 
     def update_number_of_retries(self, record_id: str, previous_count: int):
