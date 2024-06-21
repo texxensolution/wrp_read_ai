@@ -11,7 +11,7 @@ from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
 from typing import List, Dict, Any, Callable
 from queue import Queue
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager, FluencyAnalysis
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 
@@ -154,13 +154,16 @@ def main():
         base_manager=base_manager
     )
 
+    fluency_analysis = FluencyAnalysis()
+
     script_reader = ScriptReadingEvaluator(
         base_manager=base_manager,
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
         classifier=classifier,
-        logs_manager=logs_manager
+        logs_manager=logs_manager,
+        fluency_analysis=fluency_analysis
     )
 
     quote_translation = QuoteTranslationEvaluator(

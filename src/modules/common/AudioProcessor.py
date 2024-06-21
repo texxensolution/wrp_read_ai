@@ -4,13 +4,14 @@ from scipy.signal import find_peaks
 class AudioProcessor:
     @staticmethod
     def determine_wpm_category(wpm):
-        if wpm >= 151 and wpm <= 170:
-            return 5
-        if wpm >= 131 and wpm <= 150:
+        wpm = int(wpm)
+        if wpm > 160 and wpm <= 200:
             return 4
-        elif wpm >= 111 and wpm <= 130:
+        elif wpm > 120 and wpm <= 160:
+            return 5
+        elif wpm > 80 and wpm <= 120:
             return 3
-        elif wpm >= 90 and wpm <= 110:
+        elif wpm >= 0 and wpm < 80:
             return 2
         else:
             return 1

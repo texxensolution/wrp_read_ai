@@ -9,7 +9,7 @@ from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
 from src.modules.builders import LarkPayloadBuilder
-from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier
+from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier, FluencyAnalysis
 from src.modules.common import PhonemicAnalysis
 from src.modules.common import Logger
 from dataclasses import dataclass
@@ -22,6 +22,7 @@ class ScriptReadingEvaluator:
     file_manager: FileManager
     classifier: VoiceClassifier
     logs_manager: Logger
+    fluency_analysis: FluencyAnalysis
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
@@ -142,6 +143,8 @@ class ScriptReadingEvaluator:
                 print("🔊 calculating voice classification...")
                 voice_classification = self.voice_classification(y, sr)
                 predicted_classification = "Good" if voice_classification == 1 else "Bad"
+                print("🧐 calculating fluency of the speaker..." )
+                fluency = self.fluency_analysis.analyze(converted_audio_path)
             except Exception as err:
                 self.logs_manager.create_record(
                     message=err,
@@ -171,6 +174,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('wpm_category', wpm_category) \
                 .add_key_value('pitch_consistency', pitch_consistency) \
                 .add_key_value('pacing_score', pacing_score) \
+                .add_key_value('fluency', fluency) \
                 .add_key_value('metadata', metadata) \
                 .add_key_value('should_retake_exam', should_retake) \
                 .add_key_value('request_cost', cost) \

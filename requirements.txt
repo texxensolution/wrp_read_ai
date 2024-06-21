@@ -9,3 +9,5 @@ loguru
 SpeechRecognition
 Levenshtein
 pandas
+transformers
+torchaudio

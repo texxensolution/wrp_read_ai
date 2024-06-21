@@ -12,3 +12,4 @@ from .VoiceClassifier import VoiceClassifier
 from .PhonemicAnalysis import PhonemicAnalysis
 from .Logger import Logger
 from .WebSocketManager import WebSocketManager
+from .FluencyAnalysis import FluencyAnalysis
