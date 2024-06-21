@@ -1,28 +1,27 @@
-from src.modules.lark import Lark, BitableManager, FileManager
 import os
 import time
-import requests
-from dotenv import load_dotenv
-from uuid import uuid4
-from datetime import datetime
-import pytz
 import json
+import asyncio
+import websockets
+from src.modules.lark import Lark, BitableManager, FileManager
+from dotenv import load_dotenv
+from datetime import datetime
 from src.modules.whisper import Transcriber
 from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
 from typing import List, Dict, Any, Callable
-import librosa
 from queue import Queue
-import multiprocessing
-from src.modules.builders import ScriptReadingPayloadBuilder, QuoteTranslationPayloadBuilder
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, ScriptReader
+from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager, FluencyAnalysis
+from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
+
 
 @dataclass
 class Worker:
     load_dotenv()
     task_queue: TaskQueue
     lark_queue: LarkQueue 
-    script_reader: ScriptReader
+    script_reader: ScriptReadingEvaluator
+    quote_translation: QuoteTranslationEvaluator
 
     def get_correct_table_id(self, assessment_type: str):
         if assessment_type == "Script Reading":
@@ -30,51 +29,20 @@ class Worker:
         elif assessment_type == "Quote Translation":
             return os.getenv('QUOTE_TRANSLATION_TABLE_ID')
 
-    def job_processing_quote_translation(self, record, destination_table_id: str):
-        record_id = record["record_id"]
-
-        evaluation = self.process_quote_translation_record(
-            record=record,
-        )
-        
-        if evaluation is None:
-            return
-
-        audio_path = evaluation['audio_path']
-
-        file_token = self.file_manager.upload(audio_path)
-
-        payload = self.create_quote_translation_payload(
-            record=record, 
-            evaluation=evaluation
-        ) \
-            .attach_file_token_to_payload(file_token=file_token) \
-            .build_payload()
-
-        print('payload', payload)
-
-        response = self.bitable_manager.create_record(
-            table_id=destination_table_id, 
-            fields=payload
-        )
-
-        # update the record and mark as done
-        is_done = self.mark_current_record_as_done(
-            table_id=self.bubble_table_id,
-            record_id=record_id
-        )
-
-        return is_done
-    
-    
     def switch_cases(self, task: Task):
         if task.type == 'Script Reading':
             self.script_reader.process(task)
         elif task.type == 'Quote Translation':
-            pass
-    
+            self.quote_translation.process(task)
+
     def sync(self):
-        print('🚀 syncing from lark...')
+        # Get the current date and time
+        now = datetime.now()
+
+        # Format the date and time
+        formatted_time = now.strftime("%A at %I:%M %p")
+
+        print(f'🔄 syncing from lark at {formatted_time}')
 
         records = self.lark_queue.get_items()
 
@@ -90,27 +58,42 @@ class Worker:
                 "assessment_type",
                 "audio_url",
                 "given_transcription",
-                "status"
+                "status",
+                "script_id",
+                "no_of_retries"
             ]
         )
-
         self.task_queue.enqueue_many(transformed_records)
+    
+    def calculate_queued_task_display(self, queue_length: int):
+        human_queue_str = ""
+        for i in range(queue_length):
+            if i % 2 == 0:
+                human_queue_str += "🚶‍♂️"
+            else:
+                human_queue_str += "🚶‍♀️"
+        return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)
 
     def processing(self):
-        print("Worker is processing...")
+        print("👷 Worker is processing...")
 
         transformed_records = self.sync()
 
         while True:
             if not self.task_queue.is_empty():
-                task = self.task_queue.pop()
+                queue_length = self.task_queue.remaining()
+                queue_display_str = self.calculate_queued_task_display(queue_length)
+                print(queue_display_str)
 
+                task = self.task_queue.pop()
+                name = task.payload['name']
+                email = task.payload['email']
+                print(f'⚙️  processing: name={name}, email={email}...')
                 self.switch_cases(task)
             else:
                 self.sync()
                 time.sleep(3)
 
-               
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
             response = self.bitable_manager.update_record(
@@ -129,12 +112,14 @@ class Worker:
         current_datetime = datetime.now()
 
         # Format the current datetime as a string
-        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
+        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
         return formatted_datetime
 
+async def websocket_handler(websocket, path, worker: Worker):
+    await worker.websocket_manager.register_client(websocket)
 
-if __name__ == '__main__':
+def main():
     load_dotenv('.env')
 
     task_queue = TaskQueue()
@@ -163,19 +148,39 @@ if __name__ == '__main__':
 
     transcriber = Transcriber()
 
-    script_reader = ScriptReader(
+    classifier = VoiceClassifier('classifier.joblib')
+
+    logs_manager = Logger(
+        base_manager=base_manager
+    )
+
+    fluency_analysis = FluencyAnalysis()
+
+    script_reader = ScriptReadingEvaluator(
         base_manager=base_manager,
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
-        destination_table_id=os.getenv("SCRIPT_READING_TABLE_ID")
+        classifier=classifier,
+        logs_manager=logs_manager,
+        fluency_analysis=fluency_analysis
+    )
+
+    quote_translation = QuoteTranslationEvaluator(
+        file_manager=file_manager,
+        base_manager=base_manager,
+        openai=eloquent
     )
 
     worker = Worker(
         task_queue=task_queue, 
         lark_queue=lark_queue,
-        script_reader=script_reader
+        script_reader=script_reader,
+        quote_translation=quote_translation,
     )
 
-    # worker.work()
     worker.processing()
+
+
+if __name__ == '__main__':
+    main()

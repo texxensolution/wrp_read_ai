@@ -10,55 +10,32 @@ class FeatureExtractor:
     def __init__(self, y, sr):
         self.y, self.sr = y, sr
 
-    def extract_audio_features(self):
-        # Extract features
-        pitch_mean = librosa.pitch.mean_frequency(y=self.y, sr=self.sr)
-        pitch_std = librosa.pitch.tuning(y=self.y, sr=self.sr)[1]
-        pitch_modulation = ...  # Compute pitch modulation feature
-        loudness = librosa.feature.rms(y=self.y)[0].mean()
-        intensity_std = np.std(librosa.feature.rmse(y=self.y))
-        spectral_centroid = librosa.feature.spectral_centroid(y=self.y, sr=self.sr)[0].mean()
-        spectral_bandwidth = librosa.feature.spectral_bandwidth(y=self.y, sr=self.sr)[0].mean()
-        mfccs = librosa.feature.mfcc(y=self.y, sr=self.sr, n_mfcc=13)
-        mfcc_mean = np.mean(mfccs, axis=1)
+    @staticmethod
+    def load_audio(y, sr):
+        return FeatureExtractor(y, sr)
 
-        # Combine features into a single array
-        features = np.hstack([
-            pitch_mean, 
-            pitch_std, 
-            pitch_modulation, 
-            loudness, 
-            intensity_std,
-            spectral_centroid, 
-            spectral_bandwidth, 
-            mfcc_mean
-        ])
-
-        return features
+    def pitches(self, fmin=50, fmax=300):
+        # Extract pitch using the librosa.pyin() function
+        pitches, voiced_flags, voiced_probs = librosa.pyin(self.y, fmin=50, fmax=300)
+        
+        # Filter out unvoiced frames
+        pitches = pitches[voiced_flags]
+        
+        # Return the pitch values (in Hz)
+        return pitches
     
-    def extract_audio_features_as_json(self):
-        pitch_mean = librosa.pitch.mean_frequency(y=self.y, sr=sr)
-        pitch_std = librosa.pitch.tuning(y=self.y, sr=sr)[1]
-        loudness = librosa.feature.rms(y=self.y)[0].mean()
-        intensity_std = np.std(librosa.feature.rmse(y=self.y))
-        spectral_centroid = librosa.feature.spectral_centroid(y=self.y, sr=self.sr)[0].mean()
-        spectral_bandwidth = librosa.feature.spectral_bandwidth(y=self.y, sr=self.sr)[0].mean()
-        mfccs = librosa.feature.mfcc(y=self.y, sr=self.sr, n_mfcc=13)
-        mfcc_mean = np.mean(mfccs, axis=1)
+    def pitch_consistency(self):
+        # Extract pitch using the librosa.pyin() function
+        pitches = self.pitches()
+        return np.std(pitches)
 
-        # Combine features into a single array
-        features = {
-            "pitch_mean": pitch_mean, 
-            "pitch_std": pitch_std, 
-            "loudness": loudness, 
-            "intensity_std": intensity_std,
-            "spectral_centroid": spectral_centroid, 
-            "spectral_bandwidth": spectral_bandwidth, 
-            "mfcc_mean": mfcc_mean
-        }
-
-        return json.dumps(features)
-
+    def calculate_pause_duration(self):
+        threshold = 0.2
+        non_silent_intervals = librosa.effects.split(y=self.y, top_db=20)
+        pauses = np.diff(non_silent_intervals[:, 0]) / self.sr
+        avg_pause_duration = np.mean(pauses[pauses > threshold]) if len(pauses) > 0 else 0
+        return avg_pause_duration
+        
     def serialize_dict_with_array(self, data):
         def convert_value(value):
             if isinstance(value, np.ndarray):
@@ -74,7 +51,6 @@ class FeatureExtractor:
 
         serialized_data = {key: convert_value(value) for key, value in data.items()}
         return serialized_data
-            
 
     def extract_audio_quality_as_json(self):
         # RMS Energy
@@ -225,3 +201,4 @@ class FeatureExtractor:
         data = self.serialize_dict_with_array(data)
 
         return json.dumps(data)
+            

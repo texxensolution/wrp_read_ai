@@ -14,12 +14,18 @@ class TaskQueue:
 
     def pop(self) -> Task:
         return self.tasks.get()
+
+    def remaining(self):
+        return self.tasks.qsize()
     
     def enqueue_many(self, tasks: List[Dict[str, Any]]):
         for task in tasks:
             type = task['assessment_type']
             created_task = Task(payload=task, type=type)
             self.tasks.put(created_task)
+
+    def list_queued_items(self):
+        return list(self.tasks.queue)
     
     # after 5 mins
     def can_reprocess_again(self, task: Task) -> bool:

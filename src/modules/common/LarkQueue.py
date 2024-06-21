@@ -11,7 +11,7 @@ class LarkQueue:
     def get_items(self) -> List[AppTableRecord]:
         records = self.base_manager.get_records(
             table_id=self.bitable_table_id,
-            filter="OR(CurrentValue.[status] = \"\", CurrentValue.[status] = \"failed\")"
+            filter="AND(OR(CurrentValue.[status] = \"\", CurrentValue.[status] = \"failed\"), CurrentValue.[no_of_retries] <= 3)"
         )
 
         return records

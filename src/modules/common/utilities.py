@@ -1,4 +1,5 @@
 import requests
+import os
 from functools import wraps
 from time import sleep 
 
@@ -25,5 +26,16 @@ def download_mp3(url, file_name):
                 with open(file_name, 'wb') as f:
                     f.write(response.content)
                 return True
-        except Exception as err:
-            raise Exception(f"Downloading fail at {url}: ", err)
+        except FileNotFoundError as err:
+            return False
+            raise FileNotFoundError(f"Downloading fail at {url}: ", err)
+
+def map_value(value, lowest_value, max_value):
+        return (value * max_value) + lowest_value
+    
+def delete_file(file_path):
+    try:
+        os.remove(file_path)
+        print(f"🗑️  file '{file_path}' deleted...")
+    except OSError as e:
+        print(f"Error deleting file '{file_path}': {e}")

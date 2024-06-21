@@ -36,11 +36,7 @@ class BitableManager:
         response = await self.lark.bitable.v1.app_table_record.alist(partial_bitable_request)
 
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.list failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
-            )
-            return
-
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
         # lark.logger.info(lark.JSON.marshal(response.data, indent=4))
 
         return response.data
@@ -64,10 +60,7 @@ class BitableManager:
         response = self.lark.bitable.v1.app_table_record.list(partial_bitable_request)
 
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.list failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
-            )
-            return response
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
 
         return response.data
 
@@ -84,8 +77,8 @@ class BitableManager:
         response = self.lark.bitable.v1.app_table_record.list(request)
 
         if not response.success():
-            logger.error(f"request error: {response.msg}, code: {response.code}, log_id: {response.get_log_id()}")
-            return response
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+
         return response
 
     def get_records(self, table_id, filter=None) -> List[AppTableRecord]:
@@ -113,18 +106,15 @@ class BitableManager:
         .app_token(self.BITABLE_TOKEN) \
         .table_id(table_id) \
         .request_body(AppTableRecord.builder()
-                      .fields(fields)
-                      .build()) \
+                    .fields(fields)
+                    .build()) \
         .build()
 
         response: CreateAppTableRecordResponse = self.lark.bitable.v1.app_table_record.create(request)
 
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-            return
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
 
-        # 处理业务结果
         lark.logger.info(lark.JSON.marshal(response.data, indent=4))
         return response
     
@@ -140,15 +130,10 @@ class BitableManager:
 
         response: UpdateAppTableRecordResponse = self.lark.bitable.v1.app_table_record.update(request)
 
-    # 处理失败返回
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.update failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-            return None
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
 
-        # 处理业务结果
         lark.logger.info(lark.JSON.marshal(response.data, indent=4))
-
         return response
 
     def batch_create_record(self, records):
@@ -163,12 +148,9 @@ class BitableManager:
         response: BatchCreateAppTableRecordResponse = self.lark.bitable.v1.app_table_record.batch_create(request)
 
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.batch_create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-            return response
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
 
         lark.logger.info(lark.JSON.marshal(response.data, indent=4))
-
         return response
 
     async def abatch_create_record(self, records):
@@ -183,9 +165,8 @@ class BitableManager:
         response: BatchCreateAppTableRecordResponse = await self.lark.bitable.v1.app_table_record.abatch_create(request)
 
         if not response.success():
-            lark.logger.error(
-                f"client.bitable.v1.app_table_record.abatch_create failed, code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}")
-            return
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+
 
         lark.logger.info(lark.JSON.marshal(response.data, indent=4))
 
@@ -200,11 +181,8 @@ class BitableManager:
         response: DownloadMediaResponse = await self.lark.drive.v1.media.adownload(request)
 
         if not response.success():
-            lark.logger.info(
-                f"client.drive.v1.media.download failed code: {response.code}, msg: {response.msg}, log_id: {response.get_log_id()}"
-            )
-            return
-
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+            
         if destination_folder:
             filename = f"/{destination_folder}/{response.file_name}"
         else:

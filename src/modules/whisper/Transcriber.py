@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import aiohttp
+import asyncio
 import requests
 import os
 import speech_recognition as sr
@@ -32,10 +34,7 @@ class Transcriber:
             return "Error processing transcription data"
     
     def transcribe_with_google(self, audio_path):
-        path = AudioConverter.convert_mp3_to_wav(audio_path)
-        print(path)
-
-        audio_data = sr.AudioFile(path)
+        audio_data = sr.AudioFile(audio_path)
 
         with audio_data as source:
             audio_content = self.recognizer.record(source)
