@@ -2,7 +2,7 @@ import datetime
 import time
 from lark_oapi.api.drive.v1 import *
 from .TenantManager import TenantManager
-from modules.exceptions import FileUploadError
+from src.modules.exceptions import FileUploadError
 import os
 import asyncio
 from src.modules.lark import Lark
