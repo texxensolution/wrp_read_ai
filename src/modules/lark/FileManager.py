@@ -27,12 +27,12 @@ class FileManager:
             print(f"Failed to download file. Status code: {response.status_code}")
 
     def upload(self, file_path):
-        if not os.path.exists(filepath):
+        if not os.path.exists(file_path):
             return
-        filename = os.path.split(filepath)[1]
-        file = open(filepath, 'rb')
+        filename = os.path.split(file_path)[1]
+        file = open(file_path, 'rb')
 
-        size = self.get_file_size(filepath)
+        size = self.get_file_size(file_path)
 
         request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
             .request_body(UploadAllMediaRequestBody.builder()
