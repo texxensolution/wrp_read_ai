@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, VoiceClassifier, Logger, FluencyAnalysis
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
-
 @dataclass
 class Worker:
     load_dotenv()
@@ -111,9 +110,6 @@ class Worker:
 
         return formatted_datetime
 
-async def websocket_handler(websocket, path, worker: Worker):
-    await worker.websocket_manager.register_client(websocket)
-
 def main():
     load_dotenv('.env')
 
@@ -175,7 +171,6 @@ def main():
     )
 
     worker.processing()
-
 
 if __name__ == '__main__':
     main()

@@ -11,7 +11,6 @@ class Transcriber:
 
     def transcribe_with_timestamp(self, audio_path):
         # create the payload with audio binary
-
         files = {
             'file': open(audio_path, 'rb')
         }
@@ -28,15 +27,14 @@ class Transcriber:
             print("Error processing transcription data:", e)  # For debugging
             return "Error processing transcription data"
     
-    def transcribe_with_google(self, audio_path):
+    def transcribe_with_google(self, audio_path: str):
         audio_data = sr.AudioFile(audio_path)
-
         with audio_data as source:
             audio_content = self.recognizer.record(source)
         try:
             transcription = self.recognizer.recognize_google(audio_content)
-        except sr.UnknownValueError:
-            return "Google Speech Recognition could not understand audio"
-        except sr.RequestError as e:
-            return f"Could not request results from Google Speech Recognition service; {e}"
+        except sr.UnknownValueError as err:
+            raise sr.TranscriptionFailed(f"Transcription error: {err}")
+        except sr.RequestError as err:
+            raise sr.RequestError(f"Request error: {err}")
         return transcription

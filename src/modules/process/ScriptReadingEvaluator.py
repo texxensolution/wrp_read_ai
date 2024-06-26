@@ -1,6 +1,10 @@
 import os
 import librosa
 import time
+import requests
+from speech_recognition.exceptions import TranscriptionFailed
+from loguru import logger
+from src.modules.exceptions import AudioIncompleteError, EvaluationFailureError, FileUploadError
 from src.modules.common.utilities import download_mp3, retry, delete_file
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
@@ -42,8 +46,10 @@ class ScriptReadingEvaluator:
             file_token = self.file_manager.upload(filename)
             return file_token
         except Exception as err:
-            print("❗❗❗ Uploading failed:", err)
-            return None
+            raise Exception(err)
+    
+    def create_audio_path(self, user_id: str, email: str) -> str:
+        return os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
 
     def process(self, task: Task):
         time_start = time.time()
@@ -59,55 +65,22 @@ class ScriptReadingEvaluator:
             no_of_retries = int(payload['no_of_retries'])
             given_transcription = payload['given_transcription']
 
-            filename = os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
+            filename = self.create_audio_path(user_id, email)
 
-            try:
-                # download the mp3 file
-                is_downloaded = download_mp3(audio_url, filename)
+            # download the mp3 file
+            download_mp3(audio_url, filename)
 
-                if not is_downloaded:
-                    response = self.base_manager.update_record(
-                        table_id=os.getenv('BUBBLE_TABLE_ID'), 
-                        record_id=record_id, 
-                        fields={
-                            "status": "file deleted"
-                        }
-                    )
-                    raise Exception("File mark as deleted")
-            except Exception as err:
-                self.logs_manager.create_record(
-                    message=err,
-                    error_type='Audio Downloading'
-                )
-                print("❗❗❗ Audio downloading failed: ", err)
-                
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
 
             file_token = self.upload_audio_to_lark(filename)
 
-            if not file_token:
-                print("❗❗❗ Mark as failed task")
-                self.logs_manager.create_record(
-                    message=err,
-                    error_type='File Token Missing'
-                )
-                raise Exception("File token missing.")
-
-            try:
-                print('📜 transcribing...')
-                # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
-                transcription = self.transcriber.transcribe_with_google(converted_audio_path)
-                transcription = TextPreprocessor.normalize(transcription)
-                given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
-            except Exception as err:
-                self.logs_manager.create_record(
-                    message=err,
-                    error_type='Transcribing Failure'
-                )
-                print("❗❗❗ Transcribing failed: ", err)
-                raise Exception("Transcribing error.")
-
+            print('📜 transcribing...')
+            # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
+            transcription = self.transcriber.transcribe_with_google(converted_audio_path)
+            transcription = TextPreprocessor.normalize(transcription)
+            given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
+           
             try:
                 print('⚖️  evaluating script reading...')
                 y, sr = librosa.load(converted_audio_path)
@@ -115,9 +88,11 @@ class ScriptReadingEvaluator:
                 audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
 
                 if not audio_is_more_than_30_secs:
-                    should_retake = "yes"
-                else:
-                    should_retake = "no"
+                    raise AudioIncompleteError(
+                        name=name,
+                        audio_path=converted_audio_path,
+                        message="Audio file is less than 30 secs."
+                    )
 
                 print("🎯 calculating similarity score...")
                 similarity_score = self.similarity_score(transcription, given_transcription)
@@ -141,11 +116,7 @@ class ScriptReadingEvaluator:
                 print("🧐 calculating fluency of the speaker..." )
                 fluency = self.fluency_analysis.analyze(converted_audio_path)
             except Exception as err:
-                self.logs_manager.create_record(
-                    message=err,
-                    error_type='Evaluation Failure'
-                )
-                raise Exception("Evaluation failed: ", err)
+                raise EvaluationFailureError("Evaluation failed: ", err)
 
             time_end = time.time()
             processing_duration = time_end - time_start
@@ -170,12 +141,10 @@ class ScriptReadingEvaluator:
                 .add_key_value('pacing_score', pacing_score) \
                 .add_key_value('fluency', fluency) \
                 .add_key_value('metadata', metadata) \
-                .add_key_value('should_retake_exam', should_retake) \
                 .add_key_value('processing_duration', processing_duration) \
                 .attach_media_file_token('audio', file_token) \
                 .add_key_value('request_cost', cost) \
                 .build()
-            
 
             print("📤 uploading a record on lark base...")
             response = self.base_manager.create_record(
@@ -185,30 +154,77 @@ class ScriptReadingEvaluator:
             
             print("✔️ marking record as done...")
             # update the record and mark as done
-            is_done = self.mark_current_record_as_done(
+            self.mark_current_record_as_done(
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
                 record_id=record_id
             )
+            
+            remarks = self.calculate_remarks(
+                pronunciation=pronunciation_score,
+                wpm_category=wpm_category,
+                similarity_score=similarity_score,
+                pitch_consistency=pitch_consistency,
+                pacing_score=pacing_score,
+                fluency=fluency
+            )
+            delete_file(filename)
+            delete_file(converted_audio_path)
 
-            if is_done:
-                remarks = self.calculate_remarks(
-                    pronunciation=pronunciation_score,
-                    wpm_category=wpm_category,
-                    similarity_score=similarity_score,
-                    pitch_consistency=pitch_consistency,
-                    pacing_score=pacing_score,
-                    fluency=fluency
-                )
-                delete_file(filename)
-                delete_file(converted_audio_path)
-                if remarks >= 80:
-                    print(f"✔️  done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
-                else:
-                    print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
+            if remarks >= 80:
+                print(f"✔️  done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
+            else:
+                print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
 
-            return is_done
+        except requests.exceptions.InvalidURL as err:
+            response = self.base_manager.update_record(
+                table_id=os.getenv('BUBBLE_TABLE_ID'), 
+                record_id=record_id, 
+                fields={
+                    "status": "invalid audio url"
+                }
+            )
+            logger.error(f"applicant name: {name}, message: invalid audio url")
+        
+        except FileUploadError as err:
+            self.logs_manager.create_record(
+                message=err,
+                error_type="File Token Missing"
+            )
+            logger.error(err)
+
+        except AudioIncompleteError as err:
+            self.base_manager.update_record(
+                table_id=os.getenv("BUBBLE_TABLE_ID"),
+                record_id=record_id,
+                fields={
+                    "status": "audio < 30 secs"
+                }
+            )
+            logger.error(f"applicant name: {name}, message: audio is less than 30 secs")
+
+        except TranscriptionFailed as err:
+            self.logs_manager.create_record(
+                message=err,
+                error_type='Transcribing Failure'
+            )
+            logger.error(f"transcription failure: {err}")
+
+        except EvaluationFailureError as err:
+            self.logs_manager.create_record(
+                message=err,
+                error_type='Evaluation Failure'
+            )
+            logger.error(f"evaluation failure: {err}")
+
+        except requests.exceptions.RequestException as err:
+            self.logs_manager.create_record(
+                message=err,
+                error_type='Audio Downloading'
+            )
+            logger.error(f"request exception: {err}")
+
         except Exception as err:
-            print(f"❗❗❗ ScriptReadingProcess error: {err}")
+            print(f"❗ General error: {err}")
             self.logs_manager.create_record(
                 message=err,
                 error_type='General Error'
@@ -217,14 +233,13 @@ class ScriptReadingEvaluator:
                 record_id=record_id,
                 previous_count=no_of_retries
             )
-            print("🔁 Retrying in 3 seconds...")
             time.sleep(3)
             return False
             
-
-    def calculate_remarks(self, pronunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, fluency):
+    def calculate_remarks(self, pronunciation: float, wpm_category: int, similarity_score: float, pitch_consistency: int, pacing_score: int, fluency: int):
         score = (((pronunciation / 5) * 0.25) + ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10)) * 100
         return round(score)
+
 
     def update_number_of_retries(self, record_id: str, previous_count: int):
         try:
@@ -236,7 +251,8 @@ class ScriptReadingEvaluator:
                 }
             )
         except Exception as err:
-            print(f"❗❗❗ Updating retry count failed:", err)
+            print(f"❗ Updating retry count failed:", err)
+
 
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
@@ -247,7 +263,6 @@ class ScriptReadingEvaluator:
                     "status": "done"
                 }
             )
-            return True
         except Exception as err:
             raise Exception(f"Updating record failed: {record_id}")
         
@@ -262,7 +277,7 @@ class ScriptReadingEvaluator:
             )
             return True
         except Exception as err:
-            raise Exception(f"❗❗❗ Updating record failed: {record_id}")
+            raise Exception(f"❗ Updating record failed: {record_id}")
     
     def pronunciation_grading(self, transcription: str, script_id: str, y, sr):
         return PhonemicAnalysis(
