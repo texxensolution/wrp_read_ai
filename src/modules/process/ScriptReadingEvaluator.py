@@ -1,9 +1,6 @@
 import os
-import json
 import librosa
 import time
-from datetime import datetime
-from typing import Dict, Any
 from src.modules.common.utilities import download_mp3, retry, delete_file
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
@@ -95,7 +92,7 @@ class ScriptReadingEvaluator:
                     message=err,
                     error_type='File Token Missing'
                 )
-                return
+                raise Exception("File token missing.")
 
             try:
                 print('📜 transcribing...')
@@ -109,7 +106,7 @@ class ScriptReadingEvaluator:
                     error_type='Transcribing Failure'
                 )
                 print("❗❗❗ Transcribing failed: ", err)
-                return
+                raise Exception("Transcribing error.")
 
             try:
                 print('⚖️  evaluating script reading...')
@@ -126,7 +123,6 @@ class ScriptReadingEvaluator:
                 similarity_score = self.similarity_score(transcription, given_transcription)
                 print("🎶 extracting audio features...")
                 avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
-                # pitch_consistency = AudioProcessor.determine_pitch_consistency(pitch_std)
                 pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
                 words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
                 wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
@@ -149,8 +145,7 @@ class ScriptReadingEvaluator:
                     message=err,
                     error_type='Evaluation Failure'
                 )
-                print("❗❗❗ Evaluation failed: ", err)
-                return
+                raise Exception("Evaluation failed: ", err)
 
             time_end = time.time()
             processing_duration = time_end - time_start
@@ -176,18 +171,19 @@ class ScriptReadingEvaluator:
                 .add_key_value('fluency', fluency) \
                 .add_key_value('metadata', metadata) \
                 .add_key_value('should_retake_exam', should_retake) \
-                .add_key_value('request_cost', cost) \
                 .add_key_value('processing_duration', processing_duration) \
                 .attach_media_file_token('audio', file_token) \
+                .add_key_value('request_cost', cost) \
                 .build()
-
+            
 
             print("📤 uploading a record on lark base...")
             response = self.base_manager.create_record(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
             )
-
+            
+            print("✔️ marking record as done...")
             # update the record and mark as done
             is_done = self.mark_current_record_as_done(
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
@@ -227,7 +223,7 @@ class ScriptReadingEvaluator:
             
 
     def calculate_remarks(self, pronunciation, wpm_category, similarity_score, pitch_consistency, pacing_score, fluency):
-        score = (((pronunciation / 5) * 0.25) ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10))* 100
+        score = (((pronunciation / 5) * 0.25) + ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10)) * 100
         return round(score)
 
     def update_number_of_retries(self, record_id: str, previous_count: int):

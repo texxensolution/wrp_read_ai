@@ -2,6 +2,7 @@ from pydub import AudioSegment
 from pathlib import Path
 import os
 
+
 class AudioConverter:
     @staticmethod
     def get_file_path_and_directories(audio_path: str):

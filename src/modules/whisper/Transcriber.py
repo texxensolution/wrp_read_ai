@@ -1,11 +1,6 @@
 from dataclasses import dataclass
-import aiohttp
-import asyncio
 import requests
-import os
 import speech_recognition as sr
-from pydub import AudioSegment
-from src.modules.common import AudioConverter
 
 @dataclass
 class Transcriber:

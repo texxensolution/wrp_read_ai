@@ -1,18 +1,7 @@
 import numpy as np
-import librosa
 import os
-import re
-import Levenshtein
 import openai
-import json
-import math
-import joblib
 from tokencost import calculate_prompt_cost
-from .Ollama import Ollama
-from pydub import AudioSegment
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from src.modules.common import FeatureExtractor, TextPreprocessor, TranscriptionProcessor, AudioProcessor
 
 class EloquentOpenAI:
     def __init__(self, model = 'gpt-3.5-turbo', classifier_path: str = "classifier.joblib"):
@@ -55,22 +44,5 @@ class EloquentOpenAI:
             messages=prompt,
         ).choices[0].message.content, cost 
 
-    def calculate_ai_cost(self, prompt):
+    def calculate_ai_cost(self, prompt) -> float:
         return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo'))
-
-    
-    def evaluate_quote_translation(self, quote: str, transcription: str):
-        combined_prompt_answer = self.quote_translation_prompt(transcription, quote)
-        result = self.evaluate(combined_prompt_answer)
-        score_object = self.capture_json_result(result)
-        scores = {}
-
-        for key, value in score_object.items():
-            scores[key] = value
-
-        scores["result"] = result
-        scores["evaluation"] = self.remove_json_object_from_text(result)
-        scores["transcription"] = transcription
-        scores["quote"] = quote
-
-        return scores

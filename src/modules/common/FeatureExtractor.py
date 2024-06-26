@@ -1,8 +1,6 @@
 import librosa
-import os
 import json
 import numpy as np
-from pydub import AudioSegment
 from dataclasses import dataclass
 
 @dataclass

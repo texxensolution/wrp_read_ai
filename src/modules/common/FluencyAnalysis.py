@@ -19,7 +19,6 @@ class FluencyAnalysis:
     
     def get_actual_scores(self, prediction) -> float:
         label = prediction['label']
-        score = prediction['score']
 
         if label == 'Influent' or label == 'Very Influent':
             return 1 

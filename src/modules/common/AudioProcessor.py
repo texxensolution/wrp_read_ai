@@ -1,6 +1,7 @@
 import librosa
 import numpy as np
 from scipy.signal import find_peaks
+
 class AudioProcessor:
     @staticmethod
     def determine_wpm_category(wpm):
@@ -99,6 +100,3 @@ class AudioProcessor:
             return 2
         else:
             return 1
-        
-
-

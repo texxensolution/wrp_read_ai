@@ -1,17 +1,12 @@
 import os
 import time
-import json
-import asyncio
-import websockets
 from src.modules.lark import Lark, BitableManager, FileManager
 from dotenv import load_dotenv
 from datetime import datetime
 from src.modules.whisper import Transcriber
 from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
-from typing import List, Dict, Any, Callable
-from queue import Queue
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager, FluencyAnalysis
+from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, VoiceClassifier, Logger, FluencyAnalysis
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 
