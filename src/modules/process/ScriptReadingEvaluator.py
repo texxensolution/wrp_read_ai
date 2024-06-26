@@ -116,7 +116,7 @@ class ScriptReadingEvaluator:
                 print("🧐 calculating fluency of the speaker..." )
                 fluency = self.fluency_analysis.analyze(converted_audio_path)
             except Exception as err:
-                raise EvaluationFailureError("Evaluation failed: ", err)
+                raise EvaluationFailureError(message=err)
 
             time_end = time.time()
             processing_duration = time_end - time_start
