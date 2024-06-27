@@ -81,43 +81,40 @@ class ScriptReadingEvaluator:
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
            
-            try:
-                print('⚖️  evaluating script reading...')
-                y, sr = librosa.load(converted_audio_path)
-                audio_duration = librosa.get_duration(y=y)
-                audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
+            print('⚖️  evaluating script reading...')
+            y, sr = librosa.load(converted_audio_path)
+            audio_duration = librosa.get_duration(y=y)
+            audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
 
-                if not audio_is_more_than_30_secs:
-                    raise AudioIncompleteError(
-                        name=name,
-                        audio_path=converted_audio_path,
-                        message="Audio file is less than 30 secs."
-                    )
-
-                print("🎯 calculating similarity score...")
-                similarity_score = self.similarity_score(transcription, given_transcription)
-                print("🎶 extracting audio features...")
-                avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
-                pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
-                words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
-                wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
-                pronunciation_score = self.pronunciation_grading(
-                    transcription=transcription,
-                    script_id=script_id,
-                    y=y,
-                    sr=sr
+            if not audio_is_more_than_30_secs:
+                raise AudioIncompleteError(
+                    name=name,
+                    audio_path=converted_audio_path,
+                    message="Audio file is less than 30 secs."
                 )
-                evaluation, cost = self.ai_grading(transcription, given_transcription)
-                pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
-                metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
-                print("🔊 calculating voice classification...")
-                voice_classification = self.voice_classification(y, sr)
-                predicted_classification = "Good" if voice_classification == 1 else "Bad"
-                print("🧐 calculating fluency of the speaker..." )
-                fluency = self.fluency_analysis.analyze(converted_audio_path)
-            except Exception as err:
-                raise EvaluationFailureError(message=err)
 
+            print("🎯 calculating similarity score...")
+            similarity_score = self.similarity_score(transcription, given_transcription)
+            print("🎶 extracting audio features...")
+            avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
+            pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
+            words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
+            wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
+            pronunciation_score = self.pronunciation_grading(
+                transcription=transcription,
+                script_id=script_id,
+                y=y,
+                sr=sr
+            )
+            evaluation, cost = self.ai_grading(transcription, given_transcription)
+            pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
+            metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
+            print("🔊 calculating voice classification...")
+            voice_classification = self.voice_classification(y, sr)
+            predicted_classification = "Good" if voice_classification == 1 else "Bad"
+            print("🧐 calculating fluency of the speaker..." )
+            fluency = self.fluency_analysis.analyze(converted_audio_path)
+        
             time_end = time.time()
             processing_duration = time_end - time_start
 
@@ -197,26 +194,44 @@ class ScriptReadingEvaluator:
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
                 record_id=record_id,
                 fields={
-                    "status": "audio < 30 secs"
+                    "status": "audio_less_than_30_secs"
                 }
             )
             logger.error(f"applicant name: {name}, message: audio is less than 30 secs")
 
         except TranscriptionFailed as err:
+            
+            self.update_number_of_retries(
+                record_id=record_id,
+                previous_count=no_of_retries
+            )
+
             self.logs_manager.create_record(
                 message=err,
                 error_type='Transcribing Failure'
             )
+
             logger.error(f"transcription failure: {err}")
 
         except EvaluationFailureError as err:
+            self.update_number_of_retries(
+                record_id=record_id,
+                previous_count=no_of_retries
+            )
+            
             self.logs_manager.create_record(
                 message=err,
                 error_type='Evaluation Failure'
             )
+            
             logger.error(f"evaluation failure: {err}")
 
         except requests.exceptions.RequestException as err:
+            self.update_number_of_retries(
+                record_id=record_id,
+                previous_count=no_of_retries
+            )
+            
             self.logs_manager.create_record(
                 message=err,
                 error_type='Audio Downloading'
@@ -240,7 +255,6 @@ class ScriptReadingEvaluator:
         score = (((pronunciation / 5) * 0.25) + ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10)) * 100
         return round(score)
 
-
     def update_number_of_retries(self, record_id: str, previous_count: int):
         try:
             self.base_manager.update_record(
@@ -252,7 +266,6 @@ class ScriptReadingEvaluator:
             )
         except Exception as err:
             print(f"❗ Updating retry count failed:", err)
-
 
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
