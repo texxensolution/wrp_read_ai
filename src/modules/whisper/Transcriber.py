@@ -32,7 +32,7 @@ class Transcriber:
         with audio_data as source:
             audio_content = self.recognizer.record(source)
         try:
-            transcription = self.recognizer.recognize_google(audio_content)
+            transcription = self.recognizer.recognize_google(audio_content, language="en-US")
         except sr.UnknownValueError as err:
             raise sr.TranscriptionFailed(f"Transcription error: {err}")
         except sr.RequestError as err:
