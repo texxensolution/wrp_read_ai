@@ -14,3 +14,4 @@ torchaudio
 loguru
 transformers
 torch
+deepgram-sdk

@@ -77,7 +77,7 @@ class ScriptReadingEvaluator:
 
             print('📜 transcribing...')
             # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
-            transcription = self.transcriber.transcribe_with_google(converted_audio_path)
+            transcription = self.transcriber.transcribe_with_deepgram(converted_audio_path)
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
            
@@ -109,10 +109,10 @@ class ScriptReadingEvaluator:
             # )
             evaluation, cost = self.ai_grading(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
-            metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
+            # metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
             print("🔊 calculating voice classification...")
-            voice_classification = self.voice_classification(y, sr)
-            predicted_classification = "Good" if voice_classification == 1 else "Bad"
+            # voice_classification = self.voice_classification(y, sr)
+            # predicted_classification = "Good" if voice_classification == 1 else "Bad"
             print("🧐 calculating fluency of the speaker..." )
             fluency = self.fluency_analysis.analyze(converted_audio_path)
         
@@ -132,17 +132,17 @@ class ScriptReadingEvaluator:
                 .add_key_value('given_transcription', given_transcription) \
                 .add_key_value('pronunciation', pronunciation_score) \
                 .add_key_value('similarity_score', similarity_score) \
-                .add_key_value('predicted_classification', predicted_classification) \
                 .add_key_value('evaluation', evaluation) \
                 .add_key_value('wpm_category', wpm_category) \
                 .add_key_value('pitch_consistency', pitch_consistency) \
                 .add_key_value('pacing_score', pacing_score) \
                 .add_key_value('fluency', fluency) \
-                .add_key_value('metadata', metadata) \
                 .add_key_value('processing_duration', processing_duration) \
                 .attach_media_file_token('audio', file_token) \
                 .add_key_value('request_cost', cost) \
                 .build()
+                # .add_key_value('metadata', metadata) \
+                # .add_key_value('predicted_classification', predicted_classification) \
 
             print("📤 uploading a record on lark base...")
             response = self.base_manager.create_record(
