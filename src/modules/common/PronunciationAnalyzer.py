@@ -1,8 +1,9 @@
 from transformers import pipeline
+import os
 
 class PronunciationAnalyzer:
     def __init__(self):
-        self.model = pipeline(model="jeromesky/pronunciation_accuracy", task="audio-classification")
+        self.model = pipeline(model="jeromesky/pronunciation_accuracy", task="audio-classification", token=os.getenv('HF_TOKEN'))
 
     def predict(self, input_path: str):
         scores = self.model(input_path)
