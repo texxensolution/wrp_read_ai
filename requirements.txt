@@ -12,3 +12,5 @@ pandas
 transformers
 torchaudio
 loguru
+transformers
+torch

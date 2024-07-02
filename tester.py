@@ -1,24 +1,63 @@
-from src.modules.common import PhonemicAnalysis
-import librosa
-import speech_recognition as sr
+# import eng_to_ipa as ipa
 
-audio_path = "1.wav"
+# input = "the magical garden once upon a time in a small village there live a young girl named lily lily love exploring the wounds behind her house one sunny afternoon she discovered a hidden part she had never seen before curious she followed it the path led to a beautiful garden filled with flowers of every color in the center stood a large tree with golden leaves as lily approach she noticed a tiny door at the base of the tree she gently knock to her surprise the door crack open and outstand a tiny ferry with shimmering wings hello lily the fairy said with a smile i am flora the garden of this magical garden lily was amazed how do you know my name she asked ive been watching over you since you were born flora replied this garden is hidden and only those with your hearts can find it flour invited lily to explore the garden as they walk during explain that the garden could make dreams come true really wish for her family to be happy and healthy flora wave her wand and a soft glow surrounded lily your wish will come true because it comes from love flora said lily spent the afternoon playing with the fairies and animals in the garden as the sunset flora led her back to the pad remember lily you can visit us anytime you need hope or joy fluorescent lily thanks flora and walk back home her heart filled with happiness from that day on she often visited the magical garden bringing joy and love back to her village and so lily and her village live"
+# tokens = input.split(" ")
+# map = {}
+# for token in tokens:
 
-audio_data = sr.AudioFile(audio_path)
+#     phonetics = ipa.convert(token, retrieve_all=True, stress_marks=False)
+#     map[token] = phonetics
+# print(map)
 
-recognizer = sr.Recognizer()
 
-with audio_data as source:
-    audio_content = recognizer.record(source)
-try:
-    transcription = recognizer.recognize_google(audio_content)
-except sr.UnknownValueError:
-    print("Google Speech Recognition could not understand audio")
+from transformers import pipeline
+import numpy as np
+import os
 
-y, sr = librosa.load(audio_path)
+accuracy_classifier = pipeline(task="audio-classification", model="JohnJumon/pronunciation_accuracy")
+fluency_classifier = pipeline(task="audio-classification", model="JohnJumon/fluency_accuracy")
+prosodic_classifier = pipeline(task="audio-classification", model="JohnJumon/prosodic_accuracy")
 
-phonemic = PhonemicAnalysis()
-df, overall_score, transcription, stress_mismatches  = phonemic.run_analysis(y, sr, transcription, 'script-0001')
+def pronunciation_scoring(audio):
+    accuracy_description = {
+      'Extremely Poor': 'Extremely poor pronunciation and only one or two words are recognizable',
+      'Poor': 'Poor, clumsy and rigid pronunciation of the sentence as a whole, with serious pronunciation mistakes',
+      'Average': 'The overall pronunciation of the sentence is understandable, with many pronunciation mistakes and accent, but it does not affect the understanding of basic meanings',
+      'Good': 'The overall pronunciation of the sentence is good, with a few pronunciation mistakes',
+      'Excellent': 'The overall pronunciation of the sentence is excellent, with accurate phonology and no obvious pronunciation mistakes'
+    }
+    fluency_description = {
+      'Very Influent': 'Intermittent, very influent speech, with lots of pauses, repetition, and stammering', 
+      'Influent': 'The speech is a little influent, with many pauses, repetition, and stammering', 
+      'Average': 'Fluent in general, with a few pauses, repetition, and stammering', 
+      'Fluent': 'Fluent without noticeable pauses or stammering'
+    }
+    prosodic_description = {
+      'Poor': 'Poor intonation and lots of stammering and pauses, unable to read a complete sentence', 
+      'Unstable': 'Unstable speech speed, speak too fast or too slow, without the sense of rhythm', 
+      'Stable': 'Unstable speech speed, many stammering and pauses with a poor sense of rhythm', 
+      'Almost': 'Nearly correct intonation at a stable speaking speed, nearly smooth and coherent, but with little stammering and few pauses', 
+      'Perfect': 'Correct intonation at a stable speaking speed, speak with cadence, and can speak like a native'
+    }
+    accuracy = accuracy_classifier(audio)
+    fluency = fluency_classifier(audio)
+    prosodic = prosodic_classifier(audio)
 
-print(f"overall score: {overall_score}")
-print(f"transcription: {transcription}")
+    result = {
+      'accuracy': accuracy,
+      'fluency': fluency,
+      'prosodic': prosodic
+    }
+    print(accuracy)
+    print(fluency)
+    print(prosodic)
+
+    for category, scores in result.items():
+        max_score_label = max(scores, key=lambda x: x['score'])['label']
+        result[category] = max_score_label
+
+    return result['accuracy'], accuracy_description[result['accuracy']], result['fluency'], fluency_description[result['fluency']], result['prosodic'], prosodic_description[result['prosodic']]
+
+pronunciation = pipeline(model="megathil/fluency_prediction", task="audio-classification")
+print(pronunciation("justine.mp3"))
+# pronunciation_scoring("justine.mp3")

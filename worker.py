@@ -6,7 +6,7 @@ from datetime import datetime
 from src.modules.whisper import Transcriber
 from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
-from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, VoiceClassifier, Logger, FluencyAnalysis
+from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, VoiceClassifier, Logger, FluencyAnalysis, PronunciationAnalyzer
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 @dataclass
@@ -16,6 +16,12 @@ class Worker:
     lark_queue: LarkQueue 
     script_reader: ScriptReadingEvaluator
     quote_translation: QuoteTranslationEvaluator
+
+    def create_storage_folders(self):
+        script_reading_dir = os.path.join('storage', 'script_reading')
+
+        if not os.path.exists(script_reading_dir):
+            os.makedirs(script_reading_dir)
 
     def get_correct_table_id(self, assessment_type: str):
         if assessment_type == "Script Reading":
@@ -112,9 +118,11 @@ class Worker:
 
 def main():
     load_dotenv('.env')
+    print('initializing queue...')
 
     task_queue = TaskQueue()
 
+    print('initializing lark envs...')
     lark = Lark(
         app_id=os.getenv("APP_ID"),
         app_secret=os.getenv("APP_SECRET")
@@ -135,11 +143,15 @@ def main():
         bitable_token=os.getenv('BITABLE_TOKEN')
     )
 
+    print('loading ai models...')
+
     eloquent = EloquentOpenAI()
 
     transcriber = Transcriber()
 
     classifier = VoiceClassifier('classifier.joblib')
+
+    pronunciation_analyzer = PronunciationAnalyzer()
 
     logs_manager = Logger(
         base_manager=base_manager
@@ -154,7 +166,8 @@ def main():
         eloquent=eloquent,
         classifier=classifier,
         logs_manager=logs_manager,
-        fluency_analysis=fluency_analysis
+        fluency_analysis=fluency_analysis,
+        pronunciation_analyzer=pronunciation_analyzer
     )
 
     quote_translation = QuoteTranslationEvaluator(
@@ -169,6 +182,8 @@ def main():
         script_reader=script_reader,
         quote_translation=quote_translation,
     )
+    
+    worker.create_storage_folders()
 
     worker.processing()
 

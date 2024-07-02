@@ -10,7 +10,7 @@ from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
 from src.modules.builders import LarkPayloadBuilder
-from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier, FluencyAnalysis
+from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier, FluencyAnalysis, PronunciationAnalyzer
 from src.modules.common import PhonemicAnalysis
 from src.modules.common import Logger
 from dataclasses import dataclass
@@ -24,6 +24,7 @@ class ScriptReadingEvaluator:
     classifier: VoiceClassifier
     logs_manager: Logger
     fluency_analysis: FluencyAnalysis
+    pronunciation_analyzer: PronunciationAnalyzer
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
@@ -39,7 +40,6 @@ class ScriptReadingEvaluator:
             Given Script: {given_transcript}
         """
 
-    @retry()
     def upload_audio_to_lark(self, filename):
         try:
             print("📤 uploading file to lark base...")
@@ -100,12 +100,13 @@ class ScriptReadingEvaluator:
             pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
             wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
-            pronunciation_score = self.pronunciation_grading(
-                transcription=transcription,
-                script_id=script_id,
-                y=y,
-                sr=sr
-            )
+            pronunciation_score = self.pronunciation_analyzer.predict(converted_audio_path)
+            # pronunciation_score = self.pronunciation_grading(
+            #     transcription=transcription,
+            #     script_id=script_id,
+            #     y=y,
+            #     sr=sr
+            # )
             evaluation, cost = self.ai_grading(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
             metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
@@ -297,6 +298,7 @@ class ScriptReadingEvaluator:
             transcription=transcription,
             script_id=script_id
         ).run_analysis(y, sr)
+    
     
     def similarity_score(self, transcription: str, given_script: str):
         return TranscriptionProcessor.compute_distance(
