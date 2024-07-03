@@ -40,10 +40,11 @@ class ScriptReadingEvaluator:
             Given Script: {given_transcript}
         """
 
-    def upload_audio_to_lark(self, filename):
+    async def upload_audio_to_lark(self, filename):
         try:
             print("📤 uploading file to lark base...")
-            file_token = self.file_manager.upload(filename)
+            # file_token = self.file_manager.upload(filename)
+            file_token = await self.file_manager.upload_async(filename)
             return file_token
         except Exception as err:
             raise Exception(err)
@@ -51,7 +52,7 @@ class ScriptReadingEvaluator:
     def create_audio_path(self, user_id: str, email: str) -> str:
         return os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
 
-    def process(self, task: Task):
+    async def process(self, task: Task):
         time_start = time.time()
         try:
             payload = task.payload
@@ -73,11 +74,11 @@ class ScriptReadingEvaluator:
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
 
-            file_token = self.upload_audio_to_lark(filename)
+            file_token = await self.upload_audio_to_lark(filename)
 
             print('📜 transcribing...')
             # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
-            transcription = self.transcriber.transcribe_with_deepgram(converted_audio_path)
+            transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
            
@@ -101,18 +102,8 @@ class ScriptReadingEvaluator:
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
             wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
             pronunciation_score = self.pronunciation_analyzer.predict(converted_audio_path)
-            # pronunciation_score = self.pronunciation_grading(
-            #     transcription=transcription,
-            #     script_id=script_id,
-            #     y=y,
-            #     sr=sr
-            # )
-            evaluation, cost = self.ai_grading(transcription, given_transcription)
+            evaluation, cost = await self.async_ai_grading(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
-            # metadata = FeatureExtractor(y, sr).extract_audio_quality_as_json()
-            print("🔊 calculating voice classification...")
-            # voice_classification = self.voice_classification(y, sr)
-            # predicted_classification = "Good" if voice_classification == 1 else "Bad"
             print("🧐 calculating fluency of the speaker..." )
             fluency = self.fluency_analysis.analyze(converted_audio_path)
         
@@ -141,11 +132,9 @@ class ScriptReadingEvaluator:
                 .attach_media_file_token('audio', file_token) \
                 .add_key_value('request_cost', cost) \
                 .build()
-                # .add_key_value('metadata', metadata) \
-                # .add_key_value('predicted_classification', predicted_classification) \
 
             print("📤 uploading a record on lark base...")
-            response = self.base_manager.create_record(
+            response = await self.base_manager.create_record_async(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
             )
@@ -174,7 +163,7 @@ class ScriptReadingEvaluator:
                 print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
 
         except requests.exceptions.InvalidURL as err:
-            response = self.base_manager.update_record(
+            response = await self.base_manager.update_record_async(
                 table_id=os.getenv('BUBBLE_TABLE_ID'), 
                 record_id=record_id, 
                 fields={
@@ -184,14 +173,14 @@ class ScriptReadingEvaluator:
             logger.error(f"applicant name: {name}, message: invalid audio url")
         
         except FileUploadError as err:
-            self.logs_manager.create_record(
+            await self.logs_manager.create_record_async(
                 message=err,
                 error_type="File Token Missing"
             )
             logger.error(err)
 
         except AudioIncompleteError as err:
-            self.base_manager.update_record(
+            await self.base_manager.update_record_async(
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
                 record_id=record_id,
                 fields={
@@ -202,12 +191,12 @@ class ScriptReadingEvaluator:
 
         except TranscriptionFailed as err:
             
-            self.update_number_of_retries(
+            await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
 
-            self.logs_manager.create_record(
+            await self.logs_manager.create_record_async(
                 message=err,
                 error_type='Transcribing Failure'
             )
@@ -215,12 +204,12 @@ class ScriptReadingEvaluator:
             logger.error(f"transcription failure: {err}")
 
         except EvaluationFailureError as err:
-            self.update_number_of_retries(
+            await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
             
-            self.logs_manager.create_record(
+            await self.logs_manager.create_record_async(
                 message=err,
                 error_type='Evaluation Failure'
             )
@@ -228,12 +217,12 @@ class ScriptReadingEvaluator:
             logger.error(f"evaluation failure: {err}")
 
         except requests.exceptions.RequestException as err:
-            self.update_number_of_retries(
+            await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
             
-            self.logs_manager.create_record(
+            await self.logs_manager.create_record_async(
                 message=err,
                 error_type='Audio Downloading'
             )
@@ -241,11 +230,11 @@ class ScriptReadingEvaluator:
 
         except Exception as err:
             print(f"❗ General error: {err}")
-            self.logs_manager.create_record(
+            await self.logs_manager.create_record_async(
                 message=err,
                 error_type='General Error'
             )
-            self.update_number_of_retries(
+            await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
@@ -256,9 +245,9 @@ class ScriptReadingEvaluator:
         score = (((pronunciation / 5) * 0.25) + ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10)) * 100
         return round(score)
 
-    def update_number_of_retries(self, record_id: str, previous_count: int):
+    async def update_number_of_retries(self, record_id: str, previous_count: int):
         try:
-            self.base_manager.update_record(
+            await self.base_manager.update_record_async(
                 table_id=os.getenv('BUBBLE_TABLE_ID'),
                 record_id=record_id,
                 fields={
@@ -318,7 +307,7 @@ class ScriptReadingEvaluator:
 
     def calculate_wpm(self, transcription: str, audio_duration):
         return AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
-
+    
     def ai_grading(self, transcription: str, given_script: str):
         combined_prompt = self.generate_prompt(
             speaker_transcript=transcription,
@@ -328,5 +317,15 @@ class ScriptReadingEvaluator:
         result, cost = self.eloquent.evaluate(combined_prompt)
 
         return result, cost
+
+    async def async_ai_grading(self, transcription: str, given_script: str):
+        combined_prompt = self.generate_prompt(
+            speaker_transcript=transcription,
+            given_transcript=given_script
+        )
+
+        result, cost = await self.eloquent.evaluate_async(combined_prompt)
+
+        return result, cost 
 
 

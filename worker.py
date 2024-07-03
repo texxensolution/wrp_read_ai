@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 from src.modules.lark import Lark, BitableManager, FileManager
 from dotenv import load_dotenv
 from datetime import datetime
@@ -29,9 +30,9 @@ class Worker:
         elif assessment_type == "Quote Translation":
             return os.getenv('QUOTE_TRANSLATION_TABLE_ID')
 
-    def switch_cases(self, task: Task):
+    async def switch_cases(self, task: Task):
         if task.type == 'Script Reading':
-            self.script_reader.process(task)
+            await self.script_reader.process(task)
         elif task.type == 'Quote Translation':
             self.quote_translation.process(task)
 
@@ -74,7 +75,7 @@ class Worker:
                 human_queue_str += "🚶‍♀️"
         return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)
 
-    def processing(self):
+    async def processing(self):
         print("👷 Worker is processing...")
 
         transformed_records = self.sync()
@@ -89,7 +90,7 @@ class Worker:
                 name = task.payload['name']
                 email = task.payload['email']
                 print(f'⚙️  processing: name={name}, email={email}...')
-                self.switch_cases(task)
+                await self.switch_cases(task)
             else:
                 self.sync()
                 time.sleep(3)
@@ -116,7 +117,7 @@ class Worker:
 
         return formatted_datetime
 
-def main():
+async def main():
     load_dotenv('.env')
     print('initializing queue...')
 
@@ -185,7 +186,7 @@ def main():
     
     worker.create_storage_folders()
 
-    worker.processing()
+    await worker.processing()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

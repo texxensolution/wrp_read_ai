@@ -8,9 +8,9 @@ class Logger:
         self.base_manager = base_manager
         self.logs_table_id = os.getenv('LOGS_TABLE_ID')
 
-    def create_record(self, message: str, error_type: str):
+    async def create_record_async(self, message: str, error_type: str):
         try:
-            self.base_manager.create_record(
+            await self.base_manager.create_record_async(
                 table_id=self.logs_table_id,
                 fields={
                     "message": str(message),

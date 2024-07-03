@@ -9,6 +9,7 @@ class EloquentOpenAI:
         self.fillers = ['ay', 'ah', 'eh', 'ano', 'um', 'uhm']
         self.joined_fillers = ", ".join(self.fillers)
         self.openai = openai.OpenAI(api_key=self.openai_key)
+        self.aopenai = openai.AsyncOpenAI(api_key=self.openai_key)
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
         return f"""
@@ -43,6 +44,28 @@ class EloquentOpenAI:
             model="gpt-3.5-turbo", 
             messages=prompt,
         ).choices[0].message.content, cost 
+    
+    async def evaluate_async(self, combined_prompt_answer: str):
+        try:
+            prompt=[
+                        {
+                            'role': 'system',
+                            'content': combined_prompt_answer
+                        }
+                    ]
+            
+            response = await self.aopenai.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=prompt
+            )
+
+            cost = self.calculate_ai_cost(prompt)
+            content = response.choices[0].message.content
+
+            return content, cost
+        except Exception as err:
+            raise openai._exceptions.APIConnectionError("OpenAI Request failed.")
+            
 
     def calculate_ai_cost(self, prompt) -> float:
-        return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo'))
+        return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo-0613'))

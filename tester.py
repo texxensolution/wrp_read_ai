@@ -1,6 +1,7 @@
 import os
+import asyncio
+import time
 from dotenv import load_dotenv
-
 from deepgram import (
     DeepgramClient,
     PrerecordedOptions,
@@ -13,14 +14,10 @@ load_dotenv()
 AUDIO_FILE = "justine.mp3"
 
 API_KEY = os.getenv("DEEPGRAM_TOKEN")
-
-
-def main():
+async def transcribe_with_deepgram_async(deepgram, audio_path: str):
     try:
-        # STEP 1 Create a Deepgram client using the API key
-        deepgram = DeepgramClient(API_KEY)
 
-        with open(AUDIO_FILE, "rb") as file:
+        with open(audio_path, "rb") as file:
             buffer_data = file.read()
 
         payload: FileSource = {
@@ -34,19 +31,29 @@ def main():
             punctuate=False
         )
 
-        # STEP 3: Call the transcribe_file method with the text payload and options
-        response = deepgram.listen.prerecorded.v("1").transcribe_file(payload, options)
-        
+        response = await deepgram.listen.asyncprerecorded.v("1").transcribe_file(payload, options)
 
         # STEP 4: Print the response
-        print(response['results']['channels'][0]['alternatives'][0]['transcript'])
+        return response['results']['channels'][0]['alternatives'][0]['transcript']
+
+    except Exception as e:
+        raise Exception("Transcription failed: ", e)
+
+async def main():
+    try:
+        time_start = time.time()
+        deepgram = DeepgramClient(os.getenv('DEEPGRAM_TOKEN'))
+        response = await transcribe_with_deepgram_async(deepgram, AUDIO_FILE)
+        time_end = time.time()
+        print(response)
+        print("duration:", time_end-time_start)
 
     except Exception as e:
         print(f"Exception: {e}")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 
 # # import eng_to_ipa as ipa
 

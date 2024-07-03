@@ -1,3 +1,4 @@
+import asyncio
 import os
 from dataclasses import dataclass
 import requests
@@ -14,6 +15,7 @@ class Transcriber:
     
     def __init__(self):
         self.recognizer = sr.Recognizer()
+        self.deepgram = DeepgramClient(api_key=os.getenv('DEEPGRAM_TOKEN'))
 
     def transcribe_with_timestamp(self, audio_path):
         # create the payload with audio binary
@@ -47,9 +49,6 @@ class Transcriber:
     
     def transcribe_with_deepgram(self, audio_path: str):
         try:
-            # STEP 1 Create a Deepgram client using the API key
-            deepgram = DeepgramClient(os.getenv('DEEPGRAM_TOKEN'))
-
             with open(audio_path, "rb") as file:
                 buffer_data = file.read()
 
@@ -65,7 +64,7 @@ class Transcriber:
             )
 
             # STEP 3: Call the transcribe_file method with the text payload and options
-            response = deepgram.listen.prerecorded.v("1").transcribe_file(payload, options)
+            response = self.deepgram.listen.prerecorded.v("1").transcribe_file(payload, options)
             
 
             # STEP 4: Print the response
@@ -73,3 +72,28 @@ class Transcriber:
 
         except Exception as e:
             print(f"Exception: {e}")
+        
+    async def transcribe_with_deepgram_async(self, audio_path: str):
+        try:
+
+            with open(audio_path, "rb") as file:
+                buffer_data = file.read()
+
+            payload: FileSource = {
+                "buffer": buffer_data,
+            }
+
+            #STEP 2: Configure Deepgram options for audio analysis
+            options = PrerecordedOptions(
+                model="nova-2",
+                smart_format=False,
+                punctuate=False
+            )
+
+            response = await self.deepgram.listen.asyncprerecorded.v("1").transcribe_file(payload, options)
+
+            # STEP 4: Print the response
+            return response['results']['channels'][0]['alternatives'][0]['transcript']
+
+        except Exception as e:
+            raise Exception("Transcription failed: ", e)

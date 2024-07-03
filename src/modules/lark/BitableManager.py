@@ -101,6 +101,23 @@ class BitableManager:
 
         return records
 
+    async def create_record_async(self, table_id: str, fields):
+        request: CreateAppTableRecordRequest = CreateAppTableRecordRequest.builder() \
+        .app_token(self.BITABLE_TOKEN) \
+        .table_id(table_id) \
+        .request_body(AppTableRecord.builder()
+                    .fields(fields)
+                    .build()) \
+        .build()
+
+        response: CreateAppTableRecordResponse = await self.lark.bitable.v1.app_table_record.acreate(request)
+
+        if not response.success():
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+
+        lark.logger.info(lark.JSON.marshal(response.data, indent=4))
+        return response
+
     def create_record(self, table_id: str, fields):
         request: CreateAppTableRecordRequest = CreateAppTableRecordRequest.builder() \
         .app_token(self.BITABLE_TOKEN) \
@@ -129,6 +146,24 @@ class BitableManager:
             .build()
 
         response: UpdateAppTableRecordResponse = self.lark.bitable.v1.app_table_record.update(request)
+
+        if not response.success():
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+
+        lark.logger.info(lark.JSON.marshal(response.data, indent=4))
+        return response
+    
+    async def update_record_async(self, table_id: str, record_id: str, fields):
+        request: UpdateAppTableRecordRequest = UpdateAppTableRecordRequest.builder() \
+            .app_token(self.BITABLE_TOKEN) \
+            .table_id(table_id or self.BITABLE_ID) \
+            .record_id(record_id) \
+            .request_body(AppTableRecord.builder()
+                        .fields(fields)
+                        .build()) \
+            .build()
+
+        response: UpdateAppTableRecordResponse = await self.lark.bitable.v1.app_table_record.aupdate(request)
 
         if not response.success():
             raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
