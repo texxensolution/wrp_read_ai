@@ -10,7 +10,7 @@ from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
 from src.modules.lark import BitableManager, FileManager
 from src.modules.builders import LarkPayloadBuilder
-from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, VoiceClassifier, FluencyAnalysis, PronunciationAnalyzer
+from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, FluencyAnalysis, PronunciationAnalyzer
 from src.modules.common import PhonemicAnalysis
 from src.modules.common import Logger
 from dataclasses import dataclass
@@ -21,7 +21,6 @@ class ScriptReadingEvaluator:
     eloquent: EloquentOpenAI
     base_manager: BitableManager
     file_manager: FileManager
-    classifier: VoiceClassifier
     logs_manager: Logger
     fluency_analysis: FluencyAnalysis
     pronunciation_analyzer: PronunciationAnalyzer

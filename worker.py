@@ -7,7 +7,7 @@ from datetime import datetime
 from src.modules.whisper import Transcriber
 from src.modules.ollama import EloquentOpenAI
 from dataclasses import dataclass
-from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, VoiceClassifier, Logger, FluencyAnalysis, PronunciationAnalyzer
+from src.modules.common import TaskQueue, Task, LarkQueue, DataTransformer, Logger, FluencyAnalysis, PronunciationAnalyzer
 from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
 
 @dataclass
@@ -78,7 +78,7 @@ class Worker:
     async def processing(self):
         print("👷 Worker is processing...")
 
-        transformed_records = self.sync()
+        self.sync()
 
         while True:
             if not self.task_queue.is_empty():
@@ -93,7 +93,7 @@ class Worker:
                 await self.switch_cases(task)
             else:
                 self.sync()
-                time.sleep(3)
+                await asyncio.sleep(3)
 
     def mark_current_record_as_done(self, table_id: str, record_id: str):
         try:
@@ -150,8 +150,6 @@ async def main():
 
     transcriber = Transcriber()
 
-    classifier = VoiceClassifier('classifier.joblib')
-
     pronunciation_analyzer = PronunciationAnalyzer()
 
     logs_manager = Logger(
@@ -165,7 +163,6 @@ async def main():
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
-        classifier=classifier,
         logs_manager=logs_manager,
         fluency_analysis=fluency_analysis,
         pronunciation_analyzer=pronunciation_analyzer
