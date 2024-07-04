@@ -14,6 +14,7 @@ from src.modules.ollama import EloquentOpenAI
 from src.modules.process import (QuoteTranslationEvaluator,
                                  ScriptReadingEvaluator)
 from src.modules.whisper import Transcriber
+from logging.handlers import RotatingFileHandler
 
 
 
@@ -98,7 +99,7 @@ class Worker:
                 task = self.task_queue.pop()
                 name = task.payload['name']
                 email = task.payload['email']
-                self.logs.info(f'⚙️  processing: name={name}, email={email}...')
+                self.logs.info('⚙️  processing: name=%s, email=%s...', name, email)
                 await self.switch_cases(task)
             else:
                 self.sync()
@@ -181,15 +182,27 @@ if __name__ == '__main__':
     environment = os.getenv('ENV')
     print(environment)
 
-    logs_path = os.path.join('worker.log') if environment == 'development' else os.path.join('home', 'ecs-user', 'github', 'wrp_read_ai', 'worker.log')
+    info_log_file = os.path.join("worker_info.log")
+    error_log_file = os.path.join("worker_error.log")
 
+    # Configure the info file handler to log info and above
+    info_handler = RotatingFileHandler(info_log_file, maxBytes=10**6, backupCount=5, encoding='utf-8')
+    info_handler.setLevel(logging.INFO)
+    info_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # Configure the error file handler to log only errors
+    error_handler = RotatingFileHandler(error_log_file, maxBytes=10**6, backupCount=5, encoding='utf-8')
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # Configure the stream handler to log all levels to the console
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     logging.basicConfig(
         level=logging.ERROR, 
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(logs_path),
-            logging.StreamHandler()
-        ]
+        handlers=[info_handler, error_handler, stream_handler]
     )
 
     logger = logging.getLogger()
