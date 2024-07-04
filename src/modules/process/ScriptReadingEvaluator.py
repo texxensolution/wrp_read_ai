@@ -1,22 +1,28 @@
 import os
-import librosa
+import logging
 import time
+from dataclasses import dataclass
+import librosa
 import requests
-from speech_recognition.exceptions import TranscriptionFailed
 from loguru import logger
-from src.modules.exceptions import AudioIncompleteError, EvaluationFailureError, FileUploadError
-from src.modules.common.utilities import download_mp3, retry, delete_file
+from speech_recognition.exceptions import TranscriptionFailed
+
+from src.modules.builders import LarkPayloadBuilder
+from src.modules.common import (AudioConverter, AudioProcessor,
+                                FeatureExtractor, FluencyAnalysis, Logger,
+                                PhonemicAnalysis, PronunciationAnalyzer, Task,
+                                TextPreprocessor, TranscriptionProcessor)
+from src.modules.common.utilities import delete_file, download_mp3
+from src.modules.exceptions import (AudioIncompleteError,
+                                    EvaluationFailureError, FileUploadError)
+from src.modules.lark import BitableManager, FileManager
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
-from src.modules.lark import BitableManager, FileManager
-from src.modules.builders import LarkPayloadBuilder
-from src.modules.common import Task, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, FeatureExtractor, FluencyAnalysis, PronunciationAnalyzer
-from src.modules.common import PhonemicAnalysis
-from src.modules.common import Logger
-from dataclasses import dataclass
+
 
 @dataclass
 class ScriptReadingEvaluator:
+    """this class holds all information for processing script reading"""
     transcriber: Transcriber
     eloquent: EloquentOpenAI
     base_manager: BitableManager
@@ -24,9 +30,11 @@ class ScriptReadingEvaluator:
     logs_manager: Logger
     fluency_analysis: FluencyAnalysis
     pronunciation_analyzer: PronunciationAnalyzer
+    logs: logging.Logger
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
+        """generate llm prompt for openai"""
         return f"""
             Instruction:
             Language: Tagalog, English
@@ -40,6 +48,7 @@ class ScriptReadingEvaluator:
         """
 
     async def upload_audio_to_lark(self, filename):
+        """helper for uploading file to lark asynchronously"""
         try:
             print("📤 uploading file to lark base...")
             # file_token = self.file_manager.upload(filename)
@@ -49,9 +58,11 @@ class ScriptReadingEvaluator:
             raise Exception(err)
     
     def create_audio_path(self, user_id: str, email: str) -> str:
+        """helper for generating path for audio path living in storage/scriptreading folder"""
         return os.path.join('storage', 'script_reading', f"{user_id}-{email}.mp3")
 
     async def process(self, task: Task):
+        """process function will perform all validation and evaluation for script reading"""
         time_start = time.time()
         try:
             payload = task.payload
@@ -75,13 +86,13 @@ class ScriptReadingEvaluator:
 
             file_token = await self.upload_audio_to_lark(filename)
 
-            print('📜 transcribing...')
+            self.logs.info('📜 transcribing...')
             # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
             transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
            
-            print('⚖️  evaluating script reading...')
+            self.logs.info('⚖️  evaluating script reading...')
             y, sr = librosa.load(converted_audio_path)
             audio_duration = librosa.get_duration(y=y)
             audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
@@ -93,9 +104,9 @@ class ScriptReadingEvaluator:
                     message="Audio file is less than 30 secs."
                 )
 
-            print("🎯 calculating similarity score...")
+            self.logs.info("🎯 calculating similarity score...")
             similarity_score = self.similarity_score(transcription, given_transcription)
-            print("🎶 extracting audio features...")
+            self.logs.info("🎶 extracting audio features...")
             avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
             pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
@@ -103,13 +114,13 @@ class ScriptReadingEvaluator:
             pronunciation_score = self.pronunciation_analyzer.predict(converted_audio_path)
             evaluation, cost = await self.async_ai_grading(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
-            print("🧐 calculating fluency of the speaker..." )
+            self.logs.info("🧐 calculating fluency of the speaker..." )
             fluency = self.fluency_analysis.analyze(converted_audio_path)
         
             time_end = time.time()
             processing_duration = time_end - time_start
 
-            print("📦 packaging payload...")
+            self.logs.info("📦 packaging payload...")
             request_payload = LarkPayloadBuilder.builder() \
                 .add_key_value('email', email) \
                 .add_key_value('name', name) \
@@ -133,14 +144,14 @@ class ScriptReadingEvaluator:
                 .build()
 
             print("📤 uploading a record on lark base...")
-            response = await self.base_manager.create_record_async(
+            await self.base_manager.create_record_async(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
             )
             
-            print("✔️ marking record as done...")
+            self.logs.info("✔️ marking record as done...")
             # update the record and mark as done
-            self.mark_current_record_as_done(
+            await self.mark_current_record_as_done(
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
                 record_id=record_id
             )
@@ -157,19 +168,20 @@ class ScriptReadingEvaluator:
             delete_file(converted_audio_path)
 
             if remarks >= 80:
-                print(f"✔️  done processing: name={name}, remarks: ✅, score: {remarks}, processing duration: {processing_duration}\n\n")
+                self.logs.info("✔️  done processing: name=%s, remarks: ✅, score: %s, processing duration: %s\n\n", name, remarks, processing_duration)
             else:
-                print(f"✔️  done processing: name={name}, remarks: ❌, score: {remarks}, processing_duration: {processing_duration}\n\n")
+                self.logs.info(f"✔️  done processing: name=%s, remarks: ❌, score: %s, processing_duration: %s\n\n", name, remarks, processing_duration)
 
         except requests.exceptions.InvalidURL as err:
-            response = await self.base_manager.update_record_async(
+            await self.base_manager.update_record_async(
                 table_id=os.getenv('BUBBLE_TABLE_ID'), 
                 record_id=record_id, 
                 fields={
                     "status": "invalid audio url"
                 }
             )
-            logger.error(f"applicant name: {name}, message: invalid audio url")
+            logger.error(f"applicant name: {name}, message: {err}")
+            self.logs.error("applicant name: %s, message: %s", name, err)
         
         except FileUploadError as err:
             await self.logs_manager.create_record_async(
@@ -177,6 +189,7 @@ class ScriptReadingEvaluator:
                 error_type="File Token Missing"
             )
             logger.error(err)
+            self.logs.error(err)
 
         except AudioIncompleteError as err:
             await self.base_manager.update_record_async(
@@ -186,10 +199,10 @@ class ScriptReadingEvaluator:
                     "status": "audio_less_than_30_secs"
                 }
             )
-            logger.error(f"applicant name: {name}, message: audio is less than 30 secs")
+            # logger.error(f"applicant name: {name}, message: audio is less than 30 secs")
+            self.logs.error("applicant name: %s, message: audio is less than 30 secs", name)
 
         except TranscriptionFailed as err:
-            
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
@@ -201,31 +214,29 @@ class ScriptReadingEvaluator:
             )
 
             logger.error(f"transcription failure: {err}")
+            self.logs.error("transcription failure: %s", err)
 
         except EvaluationFailureError as err:
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
-            
             await self.logs_manager.create_record_async(
                 message=err,
                 error_type='Evaluation Failure'
             )
-            
-            logger.error(f"evaluation failure: {err}")
+            self.logs.error("evaluation failure: %s", err)
 
         except requests.exceptions.RequestException as err:
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
-            
             await self.logs_manager.create_record_async(
                 message=err,
                 error_type='Audio Downloading'
             )
-            logger.error(f"request exception: {err}")
+            self.logs.error("request exception: %s", err)
 
         except Exception as err:
             print(f"❗ General error: {err}")
@@ -241,10 +252,12 @@ class ScriptReadingEvaluator:
             return False
             
     def calculate_remarks(self, pronunciation: float, wpm_category: int, similarity_score: float, pitch_consistency: int, pacing_score: int, fluency: int):
+        """calculating remarks"""
         score = (((pronunciation / 5) * 0.25) + ((fluency / 5) * 0.15) + ((wpm_category / 5) * 0.15) + ((similarity_score / 5) * 0.25) + ((pitch_consistency / 5) * 0.10) + ((pacing_score / 5) * 0.10)) * 100
         return round(score)
 
     async def update_number_of_retries(self, record_id: str, previous_count: int):
+        """update number of retry when the worker is failed processing"""
         try:
             await self.base_manager.update_record_async(
                 table_id=os.getenv('BUBBLE_TABLE_ID'),
@@ -254,11 +267,12 @@ class ScriptReadingEvaluator:
                 }
             )
         except Exception as err:
-            print(f"❗ Updating retry count failed:", err)
+            print(f"❗ Updating retry count failed: {err}")
 
-    def mark_current_record_as_done(self, table_id: str, record_id: str):
+    async def mark_current_record_as_done(self, table_id: str, record_id: str):
+        """mark current record as done when the worker is done at processing it"""
         try:
-            response = self.base_manager.update_record(
+            await self.base_manager.update_record_async(
                 table_id=table_id, 
                 record_id=record_id, 
                 fields={
@@ -266,20 +280,21 @@ class ScriptReadingEvaluator:
                 }
             )
         except Exception as err:
-            raise Exception(f"Updating record failed: {record_id}")
+            raise Exception(f"Error: message=%s, status= updating record failed: %s", err, record_id)
         
-    def current_record_dont_have_recording(self, table_id: str, record_id: str):
+    async def current_record_dont_have_recording(self, table_id: str, record_id: str):
+        """mark record as dont have recording"""
         try:
-            response = self.base_manager.update_record(
-                table_id=table_id, 
-                record_id=record_id, 
+            await self.base_manager.update_record_async(
+                table_id=table_id,
+                record_id=record_id,
                 fields={
                     "status": "file deleted"
                 }
             )
             return True
         except Exception as err:
-            raise Exception(f"❗ Updating record failed: {record_id}")
+            raise Exception(f"Error: %s, error_type=❗ Updating record failed: %s", err, record_id)
     
     def pronunciation_grading(self, transcription: str, script_id: str, y, sr):
         return PhonemicAnalysis(
@@ -297,12 +312,6 @@ class ScriptReadingEvaluator:
     def pitch_stability_score(self, y, sr):
         pitch_std = FeatureExtractor(y, sr).pitch_consistency()
         return AudioProcessor.determine_pitch_consistency(pitch_std)
-
-    def voice_classification(self, y, sr):
-        return self.classifier.predict(y, sr)
-    
-    def extract_metadata(self, y, sr):
-        return FeatureExtractor(y, sr).extract_audio_quality_as_json()
 
     def calculate_wpm(self, transcription: str, audio_duration):
         return AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
@@ -325,6 +334,4 @@ class ScriptReadingEvaluator:
 
         result, cost = await self.eloquent.evaluate_async(combined_prompt)
 
-        return result, cost 
-
-
+        return result, cost
