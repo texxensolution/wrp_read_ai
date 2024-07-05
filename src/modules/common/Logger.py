@@ -13,11 +13,12 @@ class Logger:
                 environment = 'production'
             else:
                 environment = 'development'
+
             await self.base_manager.create_record_async(
                 table_id=self.logs_table_id,
                 fields={
                     "message": str(message),
-                    "error_type": error_type,
+                    "error_type": str(error_type),
                     "environment": environment
                 }
             )
