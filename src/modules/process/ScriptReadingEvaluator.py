@@ -170,7 +170,7 @@ class ScriptReadingEvaluator:
             if remarks >= 80:
                 self.logs.info("✔️  done processing: name=%s, remarks: ✅, score: %s, processing duration: %s\n\n", name, remarks, processing_duration)
             else:
-                self.logs.info(f"✔️  done processing: name=%s, remarks: ❌, score: %s, processing_duration: %s\n\n", name, remarks, processing_duration)
+                self.logs.info("✔️  done processing: name=%s, remarks: ❌, score: %s, processing_duration: %s\n\n", name, remarks, processing_duration)
 
         except requests.exceptions.InvalidURL as err:
             await self.base_manager.update_record_async(
@@ -179,6 +179,10 @@ class ScriptReadingEvaluator:
                 fields={
                     "status": "invalid audio url"
                 }
+            )
+            await self.logs_manager.create_record_async(
+                message=err,
+                error_type="Invalid Http Url"
             )
             logger.error(f"applicant name: {name}, message: {err}")
             self.logs.error("applicant name: %s, message: %s", name, err)
