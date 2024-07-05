@@ -10,6 +10,5 @@ from .TranscriptionProcessor import TranscriptionProcessor
 from .AudioProcessor import AudioProcessor
 from .PhonemicAnalysis import PhonemicAnalysis
 from .Logger import Logger
-from .WebSocketManager import WebSocketManager
 from .FluencyAnalysis import FluencyAnalysis
 from .PronunciationAnalyzer import PronunciationAnalyzer
