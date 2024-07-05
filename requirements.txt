@@ -11,3 +11,7 @@ Levenshtein
 pandas
 transformers
 torchaudio
+loguru
+transformers
+torch
+deepgram-sdk==3.*

@@ -1,6 +1,4 @@
 import soundfile as sf
-from pydub import AudioSegment
-import speech_recognition as sr
 import librosa
 import numpy as np
 import pandas as pd
@@ -43,14 +41,6 @@ class PhonemicAnalysis:
         self.expected_stress = expected_stress_rules 
         self.script = record['script']
 
-    # def load_script_metadata(self, script_id: str):
-    #     record = self.find_record('script_id', script_id)
-    #     self.expected_stress = record['expected_stressed'].replace("'", '"') # Convert string to dictionary
-    #     self.expected_stress = json.loads(self.expected_stress)
-    #     self.script = record['script']
-    #     self.phonetic_rules = record['phonetic_rules'].replace("'", '"')  # Convert string to dictionary
-    #     self.phonetic_rules = json.loads(self.phonetic_rules)
-   
 
     def find_record(self, column: str, value: str):
         filtered_df = self.dictionary.loc[self.dictionary[column] == value]
@@ -171,4 +161,5 @@ class PhonemicAnalysis:
             df = self.save_results()
             return self.overall_score
         except ValueError as e:
-            return None, str(e), None, None
+            return 0.0
+            

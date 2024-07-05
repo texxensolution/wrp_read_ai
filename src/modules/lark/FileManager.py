@@ -2,6 +2,7 @@ import datetime
 import time
 from lark_oapi.api.drive.v1 import *
 from .TenantManager import TenantManager
+from src.modules.exceptions import FileUploadError
 import os
 import asyncio
 from src.modules.lark import Lark
@@ -25,31 +26,63 @@ class FileManager:
         else:
             print(f"Failed to download file. Status code: {response.status_code}")
 
-    def upload(self, filepath):
-        try:
-            if not os.path.exists(filepath):
-                return
-            filename = os.path.split(filepath)[1]
-            file = open(filepath, 'rb')
+    async def upload_async(self, file_path):
+        if not os.path.exists(file_path):
+            return
+        filename = os.path.split(file_path)[1]
+        file = open(file_path, 'rb')
 
-            size = self.get_file_size(filepath)
+        size = self.get_file_size(file_path)
 
-            request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
-                .request_body(UploadAllMediaRequestBody.builder()
-                            .file_name(filename)
-                            .parent_type("bitable_file")
-                            .parent_node(self.bitable_token)
-                            .size(size)
-                            .file(file)
-                            .build()) \
-                .build()
+        request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
+            .request_body(UploadAllMediaRequestBody.builder()
+                .file_name(filename)
+                .parent_type("bitable_file")
+                .parent_node(self.bitable_token)
+                .size(size)
+                .file(file)
+                .build()) \
+            .build()
 
-            response: UploadAllMediaResponse = self.lark.drive.v1.media.upload_all(request)
+        response: UploadAllMediaResponse = await self.lark.drive.v1.media.aupload_all(request)
 
-            return response.data.file_token
-        except Exception as err:
-            raise Exception(f"Uploaded failed code: {response}, msg: {response.msg}")
+        if response.code != 0:
+            raise FileUploadError(
+                code=response.code, 
+                message=response.msg, 
+                file_path=file_path
+            )
 
+        return response.data.file_token
+
+    def upload(self, file_path):
+        if not os.path.exists(file_path):
+            return
+        filename = os.path.split(file_path)[1]
+        file = open(file_path, 'rb')
+
+        size = self.get_file_size(file_path)
+
+        request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
+            .request_body(UploadAllMediaRequestBody.builder()
+                .file_name(filename)
+                .parent_type("bitable_file")
+                .parent_node(self.bitable_token)
+                .size(size)
+                .file(file)
+                .build()) \
+            .build()
+
+        response: UploadAllMediaResponse = self.lark.drive.v1.media.upload_all(request)
+
+        if response.code != 0:
+            raise FileUploadError(
+                code=response.code, 
+                message=response.msg, 
+                file_path=file_path
+            )
+
+        return response.data.file_token
 
     def get_file_size(self, filepath):
         try:

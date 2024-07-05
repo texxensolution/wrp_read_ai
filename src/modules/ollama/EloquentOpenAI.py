@@ -1,18 +1,7 @@
 import numpy as np
-import librosa
 import os
-import re
-import Levenshtein
 import openai
-import json
-import math
-import joblib
 from tokencost import calculate_prompt_cost
-from .Ollama import Ollama
-from pydub import AudioSegment
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from src.modules.common import FeatureExtractor, TextPreprocessor, TranscriptionProcessor, AudioProcessor
 
 class EloquentOpenAI:
     def __init__(self, model = 'gpt-3.5-turbo', classifier_path: str = "classifier.joblib"):
@@ -20,6 +9,7 @@ class EloquentOpenAI:
         self.fillers = ['ay', 'ah', 'eh', 'ano', 'um', 'uhm']
         self.joined_fillers = ", ".join(self.fillers)
         self.openai = openai.OpenAI(api_key=self.openai_key)
+        self.aopenai = openai.AsyncOpenAI(api_key=self.openai_key)
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
         return f"""
@@ -54,23 +44,28 @@ class EloquentOpenAI:
             model="gpt-3.5-turbo", 
             messages=prompt,
         ).choices[0].message.content, cost 
-
-    def calculate_ai_cost(self, prompt):
-        return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo'))
-
     
-    def evaluate_quote_translation(self, quote: str, transcription: str):
-        combined_prompt_answer = self.quote_translation_prompt(transcription, quote)
-        result = self.evaluate(combined_prompt_answer)
-        score_object = self.capture_json_result(result)
-        scores = {}
+    async def evaluate_async(self, combined_prompt_answer: str):
+        try:
+            prompt=[
+                        {
+                            'role': 'system',
+                            'content': combined_prompt_answer
+                        }
+                    ]
+            
+            response = await self.aopenai.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=prompt
+            )
 
-        for key, value in score_object.items():
-            scores[key] = value
+            cost = self.calculate_ai_cost(prompt)
+            content = response.choices[0].message.content
 
-        scores["result"] = result
-        scores["evaluation"] = self.remove_json_object_from_text(result)
-        scores["transcription"] = transcription
-        scores["quote"] = quote
+            return content, cost
+        except Exception as err:
+            raise openai._exceptions.APIConnectionError("OpenAI Request failed.")
+            
 
-        return scores
+    def calculate_ai_cost(self, prompt) -> float:
+        return float(calculate_prompt_cost(prompt, 'gpt-3.5-turbo-0613'))

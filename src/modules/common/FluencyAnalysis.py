@@ -1,9 +1,10 @@
+import os
 from transformers import pipeline
 from typing import List, Dict, Any
 
 class FluencyAnalysis:
     def __init__(self):
-        self.model = pipeline("audio-classification", model="megathil/fluency_prediction")
+        self.model = pipeline("audio-classification", model="jeromesky/consistency_accuracy_v2", token=os.getenv('HF_TOKEN'))
     
     
     def get_actual_prediction(self, items: List[Dict[str, Any]]):
@@ -19,7 +20,6 @@ class FluencyAnalysis:
     
     def get_actual_scores(self, prediction) -> float:
         label = prediction['label']
-        score = prediction['score']
 
         if label == 'Influent' or label == 'Very Influent':
             return 1 

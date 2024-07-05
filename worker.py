@@ -1,48 +1,56 @@
-import os
-import time
-import json
+#!/usr/bin/env python3
+import sys
 import asyncio
-import websockets
-from src.modules.lark import Lark, BitableManager, FileManager
-from dotenv import load_dotenv
-from datetime import datetime
-from src.modules.whisper import Transcriber
-from src.modules.ollama import EloquentOpenAI
+import logging
+import os
 from dataclasses import dataclass
-from typing import List, Dict, Any, Callable
-from queue import Queue
-from src.modules.common import TaskQueue, Task, retry, LarkQueue, DataTransformer, VoiceClassifier, Logger, WebSocketManager, FluencyAnalysis
-from src.modules.process import ScriptReadingEvaluator, QuoteTranslationEvaluator
+from datetime import datetime
+
+from dotenv import load_dotenv
+
+from src.modules.common import (DataTransformer, FluencyAnalysis, LarkQueue,
+                                Logger, PronunciationAnalyzer, Task, TaskQueue)
+from src.modules.lark import BitableManager, FileManager, Lark
+from src.modules.ollama import EloquentOpenAI
+from src.modules.process import (QuoteTranslationEvaluator,
+                                 ScriptReadingEvaluator)
+from src.modules.whisper import Transcriber
+from logging.handlers import RotatingFileHandler
+
 
 
 @dataclass
 class Worker:
+    """Worker is responsible for processing applicant submission"""
     load_dotenv()
     task_queue: TaskQueue
-    lark_queue: LarkQueue 
+    lark_queue: LarkQueue
     script_reader: ScriptReadingEvaluator
     quote_translation: QuoteTranslationEvaluator
+    logs: logging.Logger
 
-    def get_correct_table_id(self, assessment_type: str):
-        if assessment_type == "Script Reading":
-            return os.getenv('SCRIPT_READING_TABLE_ID')
-        elif assessment_type == "Quote Translation":
-            return os.getenv('QUOTE_TRANSLATION_TABLE_ID')
+    def create_storage_folders(self):
+        """Create storage folder when running worker.py"""
+        script_reading_dir = os.path.join('storage', 'script_reading')
+        if not os.path.exists(script_reading_dir):
+            os.makedirs(script_reading_dir)
 
-    def switch_cases(self, task: Task):
+    async def switch_cases(self, task: Task):
+        """Customize Switch Case to reduce noise"""
         if task.type == 'Script Reading':
-            self.script_reader.process(task)
+            await self.script_reader.process(task)
         elif task.type == 'Quote Translation':
             self.quote_translation.process(task)
 
     def sync(self):
+        """Synchronize items from lark to TaskQueue"""
         # Get the current date and time
         now = datetime.now()
 
         # Format the date and time
         formatted_time = now.strftime("%A at %I:%M %p")
 
-        print(f'🔄 syncing from lark at {formatted_time}')
+        self.logs.info('🔄 syncing from lark at %s', formatted_time)
 
         records = self.lark_queue.get_items()
 
@@ -50,7 +58,7 @@ class Worker:
             return
 
         transformed_records = DataTransformer.convert_raw_lark_record_to_dict(
-            records, 
+            records,
             [
                 "name",
                 "user_id",
@@ -64,8 +72,9 @@ class Worker:
             ]
         )
         self.task_queue.enqueue_many(transformed_records)
-    
+
     def calculate_queued_task_display(self, queue_length: int):
+        """return the number of applicant queue"""
         human_queue_str = ""
         for i in range(queue_length):
             if i % 2 == 0:
@@ -74,56 +83,36 @@ class Worker:
                 human_queue_str += "🚶‍♀️"
         return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)
 
-    def processing(self):
-        print("👷 Worker is processing...")
+    async def processing(self):
+        """
+            This will 
+        """
+        self.logs.info("👷 Worker is processing...")
 
-        transformed_records = self.sync()
+        self.sync()
 
         while True:
             if not self.task_queue.is_empty():
                 queue_length = self.task_queue.remaining()
                 queue_display_str = self.calculate_queued_task_display(queue_length)
-                print(queue_display_str)
+                self.logs.info(queue_display_str)
 
                 task = self.task_queue.pop()
                 name = task.payload['name']
                 email = task.payload['email']
-                print(f'⚙️  processing: name={name}, email={email}...')
-                self.switch_cases(task)
+                self.logs.info('⚙️  processing: name=%s, email=%s...', name, email)
+                await self.switch_cases(task)
             else:
                 self.sync()
-                time.sleep(3)
+                await asyncio.sleep(3)
 
-    def mark_current_record_as_done(self, table_id: str, record_id: str):
-        try:
-            response = self.bitable_manager.update_record(
-                table_id=table_id, 
-                record_id=record_id, 
-                fields={
-                    "status": "done"
-                }
-            )
-            return True
-        except Exception as err:
-            return False
-
-    def get_current_timestamp(self):
-        # Get the current datetime
-        current_datetime = datetime.now()
-
-        # Format the current datetime as a string
-        formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
-        return formatted_datetime
-
-async def websocket_handler(websocket, path, worker: Worker):
-    await worker.websocket_manager.register_client(websocket)
-
-def main():
-    load_dotenv('.env')
+async def main(logs: logging.Logger):
+    """main initializer"""
+    
 
     task_queue = TaskQueue()
 
+    logs.info('initializing lark envs...')
     lark = Lark(
         app_id=os.getenv("APP_ID"),
         app_secret=os.getenv("APP_SECRET")
@@ -140,15 +129,17 @@ def main():
     )
 
     file_manager = FileManager(
-        lark_client=lark, 
+        lark_client=lark,
         bitable_token=os.getenv('BITABLE_TOKEN')
     )
+
+    logs.info('loading ai models...')
 
     eloquent = EloquentOpenAI()
 
     transcriber = Transcriber()
 
-    classifier = VoiceClassifier('classifier.joblib')
+    pronunciation_analyzer = PronunciationAnalyzer()
 
     logs_manager = Logger(
         base_manager=base_manager
@@ -161,9 +152,10 @@ def main():
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
-        classifier=classifier,
         logs_manager=logs_manager,
-        fluency_analysis=fluency_analysis
+        fluency_analysis=fluency_analysis,
+        pronunciation_analyzer=pronunciation_analyzer,
+        logs=logs
     )
 
     quote_translation = QuoteTranslationEvaluator(
@@ -173,14 +165,49 @@ def main():
     )
 
     worker = Worker(
-        task_queue=task_queue, 
+        task_queue=task_queue,
         lark_queue=lark_queue,
         script_reader=script_reader,
         quote_translation=quote_translation,
+        logs=logs
     )
+    
+    worker.create_storage_folders()
 
-    worker.processing()
-
+    await worker.processing()
 
 if __name__ == '__main__':
-    main()
+    
+    load_dotenv('.env')
+
+    environment = os.getenv('ENV')
+    print(environment)
+
+    info_log_file = os.path.join("worker_info.log")
+    error_log_file = os.path.join("worker_error.log")
+
+    # Configure the info file handler to log info and above
+    info_handler = RotatingFileHandler(info_log_file, maxBytes=10**6, backupCount=5, encoding='utf-8')
+    info_handler.setLevel(logging.INFO)
+    info_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # Configure the error file handler to log only errors
+    error_handler = RotatingFileHandler(error_log_file, maxBytes=10**6, backupCount=5, encoding='utf-8')
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    # Configure the stream handler to log all levels to the console
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[info_handler, error_handler, stream_handler]
+    )
+
+    logger = logging.getLogger()
+    logger.info('loading environment variables...')
+    
+    asyncio.run(main(logs=logger))

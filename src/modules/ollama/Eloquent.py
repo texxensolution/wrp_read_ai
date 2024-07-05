@@ -3,9 +3,6 @@ from pydub import AudioSegment
 import numpy as np
 import librosa
 import os
-import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 class Eloquent:
     def __init__(self, model = 'llama3:instruct', host = os.getenv('OLLAMA_HOST')):
