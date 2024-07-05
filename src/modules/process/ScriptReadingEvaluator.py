@@ -18,7 +18,7 @@ from src.modules.exceptions import (AudioIncompleteError,
 from src.modules.lark import BitableManager, FileManager
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
-from src.modules.enums import LogStatusError
+from src.modules.enums.LogStatusError import LogStatusError
 
 
 @dataclass
