@@ -8,6 +8,7 @@ class FluencyAnalysis:
     
     
     def get_actual_prediction(self, items: List[Dict[str, Any]]):
+        """find the highest score between the probability space"""
         max_current = 0
         index = None
         for key, item in enumerate(items):
@@ -19,6 +20,7 @@ class FluencyAnalysis:
         return items[index]
     
     def get_actual_scores(self, prediction) -> float:
+        """get the actual score from the prediction probability space"""
         label = prediction['label']
 
         if label == 'Influent' or label == 'Very Influent':
@@ -30,6 +32,7 @@ class FluencyAnalysis:
 
 
     def analyze(self, audio_path: str) -> float:
+        """analyze the audio input"""
         prediction = self.model(audio_path)
 
         highest_probability = self.get_actual_prediction(prediction)

@@ -4,8 +4,10 @@ import os
 
 
 class AudioConverter:
+    """audio converter class"""
     @staticmethod
     def get_file_path_and_directories(audio_path: str):
+        """get the file path, filename, name without extension"""
         path = Path(audio_path)
         directories = path.parent
         basename = path.name
@@ -15,6 +17,7 @@ class AudioConverter:
 
     @staticmethod
     def convert_mp3_to_wav(audio_path: str):
+        """convert mp3 file to wav file"""
         try:
             directories, basename, name_without_extension = AudioConverter.get_file_path_and_directories(audio_path)
 
@@ -30,8 +33,9 @@ class AudioConverter:
 
     @staticmethod
     def convert_wav_to_mp3(audio_path: str):
+        """convert wav file to mp3 file"""
         try:
-            directory, filename = audio_path.rsplit('.wav')
+            _directory, filename = audio_path.rsplit('.wav')
 
             audio: AudioSegment = AudioSegment.from_wav(audio_path)
 
