@@ -1,0 +1,12 @@
+from enum import Enum
+
+class LogStatusError(Enum):
+    INVALID_HTTP_URL = "INVALID_HTTP_URL"
+    CANT_DOWNLOAD_AUDIO = "CANT_DOWNLOAD_AUDIO"
+    FILE_TOKEN_MISSING = "FILE_TOKEN_MISSING"
+    TRANSCRIBING_FAILURE = "TRANSCRIBING_FAILURE"
+    EVALUATION_FAILURE = "EVALUATION_FAILURE"
+    GENERAL_ERROR = "GENERAL_ERROR"
+
+    def __str__(self) -> str:
+        return self.value

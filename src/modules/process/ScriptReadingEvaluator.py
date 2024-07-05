@@ -18,6 +18,7 @@ from src.modules.exceptions import (AudioIncompleteError,
 from src.modules.lark import BitableManager, FileManager
 from src.modules.ollama import EloquentOpenAI
 from src.modules.whisper import Transcriber
+from src.modules.enums import LogStatusError
 
 
 @dataclass
@@ -143,7 +144,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('request_cost', cost) \
                 .build()
 
-            print("📤 uploading a record on lark base...")
+            self.logs.info("📤 uploading a record on lark base...")
             await self.base_manager.create_record_async(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
@@ -182,7 +183,7 @@ class ScriptReadingEvaluator:
             )
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type="Invalid Http Url"
+                error_type=LogStatusError.INVALID_HTTP_URL
             )
             logger.error(f"applicant name: {name}, message: {err}")
             self.logs.error("applicant name: %s, message: %s", name, err)
@@ -190,7 +191,7 @@ class ScriptReadingEvaluator:
         except FileUploadError as err:
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type="File Token Missing"
+                error_type=LogStatusError.FILE_TOKEN_MISSING
             )
             logger.error(err)
             self.logs.error(err)
@@ -214,7 +215,7 @@ class ScriptReadingEvaluator:
 
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type='Transcribing Failure'
+                error_type=LogStatusError.TRANSCRIBING_FAILURE
             )
 
             logger.error(f"transcription failure: {err}")
@@ -227,7 +228,7 @@ class ScriptReadingEvaluator:
             )
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type='Evaluation Failure'
+                error_type=LogStatusError.EVALUATION_FAILURE
             )
             self.logs.error("evaluation failure: %s", err)
 
@@ -238,7 +239,7 @@ class ScriptReadingEvaluator:
             )
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type='Audio Downloading'
+                error_type=LogStatusError.CANT_DOWNLOAD_AUDIO
             )
             self.logs.error("request exception: %s", err)
 
@@ -246,7 +247,7 @@ class ScriptReadingEvaluator:
             print(f"❗ General error: {err}")
             await self.logs_manager.create_record_async(
                 message=err,
-                error_type='General Error'
+                error_type=LogStatusError.GENERAL_ERROR
             )
             await self.update_number_of_retries(
                 record_id=record_id,
