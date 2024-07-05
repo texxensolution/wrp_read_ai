@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-import sys
 import asyncio
 import logging
 import os
+import sys
 from dataclasses import dataclass
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
 from dotenv import load_dotenv
 
@@ -15,8 +16,6 @@ from src.modules.ollama import EloquentOpenAI
 from src.modules.process import (QuoteTranslationEvaluator,
                                  ScriptReadingEvaluator)
 from src.modules.whisper import Transcriber
-from logging.handlers import RotatingFileHandler
-
 
 
 @dataclass
