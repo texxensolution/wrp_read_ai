@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 import asyncio
 import logging
 import os
@@ -49,7 +50,7 @@ class Worker:
         # Format the date and time
         formatted_time = now.strftime("%A at %I:%M %p")
 
-        self.logs.info(f'🔄 syncing from lark at {formatted_time}')
+        self.logs.info('🔄 syncing from lark at %s', formatted_time)
 
         records = self.lark_queue.get_items()
 
@@ -196,11 +197,12 @@ if __name__ == '__main__':
     error_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
     # Configure the stream handler to log all levels to the console
-    stream_handler = logging.StreamHandler()
+    stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
     logging.basicConfig(
-        level=logging.ERROR, 
+        level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[info_handler, error_handler, stream_handler]
     )
