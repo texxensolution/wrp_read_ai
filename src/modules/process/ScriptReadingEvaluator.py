@@ -87,13 +87,6 @@ class ScriptReadingEvaluator:
 
             file_token = await self.upload_audio_to_lark(filename)
 
-            self.logs.info('📜 transcribing...')
-            # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
-            transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
-            transcription = TextPreprocessor.normalize(transcription)
-            given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
-           
-            self.logs.info('⚖️  evaluating script reading...')
             y, sr = librosa.load(converted_audio_path)
             audio_duration = librosa.get_duration(y=y)
             audio_is_more_than_30_secs = AudioProcessor.is_audio_more_than_30_secs(y, sr)
@@ -104,6 +97,15 @@ class ScriptReadingEvaluator:
                     audio_path=converted_audio_path,
                     message="Audio file is less than 30 secs."
                 )
+
+            self.logs.info('📜 transcribing...')
+            # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
+            transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
+            transcription = TextPreprocessor.normalize(transcription)
+            given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
+           
+            self.logs.info('⚖️  evaluating script reading...')
+            
 
             self.logs.info("🎯 calculating similarity score...")
             similarity_score = self.similarity_score(transcription, given_transcription)

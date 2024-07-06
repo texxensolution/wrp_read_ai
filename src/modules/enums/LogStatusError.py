@@ -7,6 +7,7 @@ class LogStatusError(Enum):
     TRANSCRIBING_FAILURE = "TRANSCRIBING_FAILURE"
     EVALUATION_FAILURE = "EVALUATION_FAILURE"
     GENERAL_ERROR = "GENERAL_ERROR"
+    AUDIO_LESS_THAN_30_SECS = "AUDIO_LESS_THAN_30_SECS"
 
     def __str__(self) -> str:
         return self.value

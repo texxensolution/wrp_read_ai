@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 
 class FluencyAnalysis:
     def __init__(self):
-        self.model = pipeline("audio-classification", model="jeromesky/consistency_accuracy_v2", token=os.getenv('HF_TOKEN'))
+        self.model = pipeline("audio-classification", model="jeromesky/consistency_accuracy_v1.0.3", token=os.getenv('HF_TOKEN'))
     
     
     def get_actual_prediction(self, items: List[Dict[str, Any]]):
