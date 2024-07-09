@@ -38,11 +38,12 @@ class ScriptReadingEvaluator:
         """generate llm prompt for openai"""
         return f"""
             Instruction:
-            Language: Tagalog, English
-            Evaluate the transcription based on the criteria below and give brief description on how you evaluate the criterias
-            Criterias:
-                - Compare the two Speaker Transcription and Given Script
-                - Include the mispronunciation between speaker transcription and given script
+            Language: English
+            Evaluate the transcription based on the criteria below and give a brief description of how you evaluated the criteria.
+            Criteria:
+            Compare the Speaker Transcription and Given Script
+            Identify mispronunciations between the speaker transcription and given script
+            If the speaker transcription is empty, return "Invalid"
 
             Speaker Transcription: {speaker_transcript}
             Given Script: {given_transcript}
