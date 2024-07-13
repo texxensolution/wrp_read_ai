@@ -150,6 +150,7 @@ async def main(logs: logging.Logger):
         file_manager=file_manager,
         transcriber=transcriber,
         eloquent=eloquent,
+        ollama_client=ollama_client,
         logs_manager=logs_manager,
         fluency_analysis=fluency_analysis,
         pronunciation_analyzer=pronunciation_analyzer,
