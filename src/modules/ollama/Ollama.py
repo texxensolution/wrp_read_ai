@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 @dataclass
 class Ollama:
     model: str
-    host: str = 'http://172.16.1.4:11434'
+    host: str = 'http://172.16.1.4:11434/api/chat'
     messages = []
 
     def combine_prompt_and_message(self, prompt: str, message: str):
@@ -32,7 +32,8 @@ class Ollama:
         }
         try:
             async with ClientSession() as session:
-                async with session.post(f"{self.host}/api/chat", json=data) as response:
+                print("llm evaluation...")
+                async with session.post(self.host, json=data) as response:
                     response = await response.json()
                     return response['message']['content']
         except Exception as err:
