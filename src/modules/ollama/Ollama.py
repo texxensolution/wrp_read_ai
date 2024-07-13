@@ -1,21 +1,13 @@
 from dataclasses import dataclass
-import requests
+from aiohttp import ClientSession
 
 @dataclass
 class Ollama:
     model: str
-    host: str
+    host: str = 'http://172.16.1.4:11434'
     messages = []
 
     def combine_prompt_and_message(self, prompt: str, message: str):
-        # self.messages.append({
-        #     "role": "assistant",
-        #     "content": prompt
-        # })
-        # self.messages.append({
-        #     "role": "user",
-        #     "content": message
-        # })
         prompt_message = [
             {
                 "role": "assistant",
@@ -28,22 +20,21 @@ class Ollama:
         ]
         return prompt_message
 
-    def generate(self, prompt: str):
+    async def chat_async(self, prompt: str):
+        """async wrapper for ollama chat request"""
         data = {
             "model": self.model,
-            "messages": prompt,
+            "messages": [{"role": "system", "content": prompt}],
             "stream": False,
             "options": {
                 "temperature": 0
             }
         }
-
-        response = requests.post(f"http://{self.host}/api/chat", json=data)
-
-        generated = response.json()
-
-        return generated['message']['content']
+        try:
+            async with ClientSession() as session:
+                async with session.post(f"{self.host}/api/chat", json=data) as response:
+                    response = await response.json()
+                    return response['message']['content']
+        except Exception as err:
+            raise Exception("error:", err) from err
     
-    def clear_history(self):
-        self.messages = []
-

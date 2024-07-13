@@ -2,6 +2,7 @@ import os
 import logging
 import time
 from dataclasses import dataclass
+from typing import Union
 import librosa
 import requests
 from loguru import logger
@@ -16,7 +17,7 @@ from src.modules.common.utilities import delete_file, download_mp3
 from src.modules.exceptions import (AudioIncompleteError,
                                     EvaluationFailureError, FileUploadError)
 from src.modules.lark import BitableManager, FileManager
-from src.modules.ollama import EloquentOpenAI
+from src.modules.ollama import EloquentOpenAI, Ollama
 from src.modules.whisper import Transcriber
 from src.modules.enums.LogStatusError import LogStatusError
 
@@ -32,6 +33,7 @@ class ScriptReadingEvaluator:
     fluency_analysis: FluencyAnalysis
     pronunciation_analyzer: PronunciationAnalyzer
     logs: logging.Logger
+    ollama_client: Union[Ollama, None] = None
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
     def generate_prompt(self, speaker_transcript: str, given_transcript: str):
@@ -107,17 +109,18 @@ class ScriptReadingEvaluator:
            
             self.logs.info('⚖️  evaluating script reading...')
             
-
             self.logs.info("🎯 calculating similarity score...")
             similarity_score = self.similarity_score(transcription, given_transcription)
+
             self.logs.info("🎶 extracting audio features...")
             avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
             pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
             wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
             pronunciation_score = self.pronunciation_analyzer.predict(converted_audio_path)
-            evaluation, cost = await self.async_ai_grading(transcription, given_transcription)
+            evaluation, cost = await self.async_ai_grading_ollama(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
+
             self.logs.info("🧐 calculating fluency of the speaker..." )
             fluency = self.fluency_analysis.analyze(converted_audio_path)
         
@@ -168,9 +171,7 @@ class ScriptReadingEvaluator:
                 pacing_score=pacing_score,
                 fluency=fluency
             )
-            delete_file(filename)
-            delete_file(converted_audio_path)
-
+            
             if remarks >= 80:
                 self.logs.info("✔️  done processing: name=%s, remarks: ✅, score: %s, processing duration: %s\n\n", name, remarks, processing_duration)
             else:
@@ -258,6 +259,9 @@ class ScriptReadingEvaluator:
             )
             time.sleep(3)
             return False
+        finally:
+            delete_file(filename)
+            delete_file(converted_audio_path)
             
     def calculate_remarks(self, pronunciation: float, wpm_category: int, similarity_score: float, pitch_consistency: int, pacing_score: int, fluency: int):
         """calculating remarks"""
@@ -310,7 +314,6 @@ class ScriptReadingEvaluator:
             script_id=script_id
         ).run_analysis(y, sr)
     
-    
     def similarity_score(self, transcription: str, given_script: str):
         return TranscriptionProcessor.compute_distance(
             transcription=transcription,
@@ -343,3 +346,12 @@ class ScriptReadingEvaluator:
         result, cost = await self.eloquent.evaluate_async(combined_prompt)
 
         return result, cost
+
+    async def async_ai_grading_ollama(self, transcription: str, given_script: str):
+        combined_prompt = self.generate_prompt(
+            speaker_transcript=transcription,
+            given_transcript=given_script
+        )
+        result, cost = await self.ollama_client.chat_async(combined_prompt)
+        return result, cost
+    

@@ -6,17 +6,14 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
-
 from dotenv import load_dotenv
-
 from src.modules.common import (DataTransformer, FluencyAnalysis, LarkQueue,
                                 Logger, PronunciationAnalyzer, Task, TaskQueue)
 from src.modules.lark import BitableManager, FileManager, Lark
-from src.modules.ollama import EloquentOpenAI
+from src.modules.ollama import EloquentOpenAI, Ollama
 from src.modules.process import (QuoteTranslationEvaluator,
                                  ScriptReadingEvaluator)
 from src.modules.whisper import Transcriber
-
 
 @dataclass
 class Worker:
@@ -137,6 +134,8 @@ async def main(logs: logging.Logger):
     eloquent = EloquentOpenAI()
 
     transcriber = Transcriber()
+
+    ollama_client = Ollama('llama3:instruct', 'http://172.168.1.4:11434')
 
     pronunciation_analyzer = PronunciationAnalyzer()
 
