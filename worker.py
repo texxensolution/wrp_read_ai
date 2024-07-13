@@ -135,7 +135,7 @@ async def main(logs: logging.Logger):
 
     transcriber = Transcriber()
 
-    ollama_client = Ollama('llama3:instruct', 'http://172.168.1.4:11434')
+    ollama_client = Ollama('llama3:instruct')
 
     pronunciation_analyzer = PronunciationAnalyzer()
 
