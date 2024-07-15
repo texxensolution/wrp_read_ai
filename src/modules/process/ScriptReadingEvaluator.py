@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Union
 import librosa
 import requests
-from loguru import logger
 from speech_recognition.exceptions import TranscriptionFailed
 
 from src.modules.builders import LarkPayloadBuilder
@@ -29,10 +28,8 @@ class ScriptReadingEvaluator:
     eloquent: EloquentOpenAI
     base_manager: BitableManager
     file_manager: FileManager
-    logs_manager: Logger
     fluency_analysis: FluencyAnalysis
     pronunciation_analyzer: PronunciationAnalyzer
-    logs: logging.Logger
     ollama_client: Union[Ollama, None] = None
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
@@ -67,6 +64,7 @@ class ScriptReadingEvaluator:
 
     async def process(self, task: Task):
         """process function will perform all validation and evaluation for script reading"""
+        logger = logging.getLogger()
         time_start = time.time()
         try:
             payload = task.payload
@@ -101,18 +99,18 @@ class ScriptReadingEvaluator:
                     message="Audio file is less than 30 secs."
                 )
 
-            self.logs.info('📜 transcribing...')
+            logger.info('📜 transcribing...')
             # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
             transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)
            
-            self.logs.info('⚖️  evaluating script reading...')
+            logger.info('⚖️  evaluating script reading...')
             
-            self.logs.info("🎯 calculating similarity score...")
+            logger.info("🎯 calculating similarity score...")
             similarity_score = self.similarity_score(transcription, given_transcription)
 
-            self.logs.info("🎶 extracting audio features...")
+            logger.info("🎶 extracting audio features...")
             avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
             pitch_consistency = AudioProcessor.pitch_stability_score(y, sr)
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
@@ -121,13 +119,13 @@ class ScriptReadingEvaluator:
             evaluation, cost = await self.async_ai_grading_ollama(transcription, given_transcription)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
 
-            self.logs.info("🧐 calculating fluency of the speaker..." )
+            logger.info("🧐 calculating fluency of the speaker..." )
             fluency = self.fluency_analysis.analyze(converted_audio_path)
         
             time_end = time.time()
             processing_duration = time_end - time_start
 
-            self.logs.info("📦 packaging payload...")
+            logger.info("📦 packaging payload...")
             request_payload = LarkPayloadBuilder.builder() \
                 .add_key_value('email', email) \
                 .add_key_value('name', name) \
@@ -150,13 +148,13 @@ class ScriptReadingEvaluator:
                 .add_key_value('request_cost', cost) \
                 .build()
 
-            self.logs.info("📤 uploading a record on lark base...")
+            logger.info("📤 uploading a record on lark base...")
             await self.base_manager.create_record_async(
                 table_id=os.getenv('SCRIPT_READING_TABLE_ID'), 
                 fields=request_payload
             )
             
-            self.logs.info("✔️ marking record as done...")
+            logger.info("✔️ marking record as done...")
             # update the record and mark as done
             await self.mark_current_record_as_done(
                 table_id=os.getenv("BUBBLE_TABLE_ID"),
@@ -173,9 +171,9 @@ class ScriptReadingEvaluator:
             )
             
             if remarks >= 80:
-                self.logs.info("✔️  done processing: name=%s, remarks: ✅, score: %s, processing duration: %s\n\n", name, remarks, processing_duration)
+                logger.info("✔️  done processing: name=%s, remarks: ✅, score: %s, processing duration: %s\n\n", name, remarks, processing_duration)
             else:
-                self.logs.info("✔️  done processing: name=%s, remarks: ❌, score: %s, processing_duration: %s\n\n", name, remarks, processing_duration)
+                logger.info("✔️  done processing: name=%s, remarks: ❌, score: %s, processing_duration: %s\n\n", name, remarks, processing_duration)
 
         except requests.exceptions.InvalidURL as err:
             await self.base_manager.update_record_async(
@@ -185,20 +183,10 @@ class ScriptReadingEvaluator:
                     "status": "invalid audio url"
                 }
             )
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.INVALID_HTTP_URL
-            )
-            logger.error(f"applicant name: {name}, message: {err}")
-            self.logs.error("applicant name: %s, message: %s", name, err)
+            logger.error("applicant name: %s, message: %s", name, err)
         
         except FileUploadError as err:
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.FILE_TOKEN_MISSING
-            )
             logger.error(err)
-            self.logs.error(err)
 
         except AudioIncompleteError as err:
             await self.base_manager.update_record_async(
@@ -209,7 +197,7 @@ class ScriptReadingEvaluator:
                 }
             )
             # logger.error(f"applicant name: {name}, message: audio is less than 30 secs")
-            self.logs.error("applicant name: %s, message: audio is less than 30 secs", name)
+            logger.error("applicant name: %s, message: audio is less than 30 secs", name)
 
         except TranscriptionFailed as err:
             await self.update_number_of_retries(
@@ -217,48 +205,32 @@ class ScriptReadingEvaluator:
                 previous_count=no_of_retries
             )
 
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.TRANSCRIBING_FAILURE
-            )
-
-            logger.error(f"transcription failure: {err}")
-            self.logs.error("transcription failure: %s", err)
+            logger.error("transcription failure: %s", err)
 
         except EvaluationFailureError as err:
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.EVALUATION_FAILURE
-            )
-            self.logs.error("evaluation failure: %s", err)
+            logger.error("evaluation failure: %s", err)
 
         except requests.exceptions.RequestException as err:
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.CANT_DOWNLOAD_AUDIO
-            )
-            self.logs.error("request exception: %s", err)
+            logger.error("request exception: %s", err)
 
         except Exception as err:
             print(f"❗ General error: {err}")
-            await self.logs_manager.create_record_async(
-                message=err,
-                error_type=LogStatusError.GENERAL_ERROR
-            )
+            logger.error(err)
             await self.update_number_of_retries(
                 record_id=record_id,
                 previous_count=no_of_retries
             )
             time.sleep(3)
             return False
+
         finally:
             delete_file(filename)
             delete_file(converted_audio_path)

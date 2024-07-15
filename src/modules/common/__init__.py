@@ -12,3 +12,4 @@ from .PhonemicAnalysis import PhonemicAnalysis
 from .Logger import Logger
 from .FluencyAnalysis import FluencyAnalysis
 from .PronunciationAnalyzer import PronunciationAnalyzer
+from .ScriptExtractor import ScriptExtractor

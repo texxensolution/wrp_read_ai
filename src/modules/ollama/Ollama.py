@@ -32,10 +32,9 @@ class Ollama:
         }
         try:
             async with ClientSession() as session:
-                print("llm evaluation...")
                 async with session.post(self.host, json=data) as response:
                     response = await response.json()
-                    return response['message']['content']
+                    return response['message']['content'], 0
         except Exception as err:
             raise Exception("error:", err) from err
     

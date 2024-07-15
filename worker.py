@@ -14,6 +14,7 @@ from src.modules.ollama import EloquentOpenAI, Ollama
 from src.modules.process import (QuoteTranslationEvaluator,
                                  ScriptReadingEvaluator)
 from src.modules.whisper import Transcriber
+from src.modules.logger import LarkHandler
 
 @dataclass
 class Worker:
@@ -102,85 +103,10 @@ class Worker:
                 self.sync()
                 await asyncio.sleep(3)
 
-async def main(logs: logging.Logger):
+async def main():
     """main initializer"""
-    
-
-    task_queue = TaskQueue()
-
-    logs.info('initializing lark envs...')
-    lark = Lark(
-        app_id=os.getenv("APP_ID"),
-        app_secret=os.getenv("APP_SECRET")
-    )
-
-    base_manager = BitableManager(
-        lark_client=lark,
-        bitable_token=os.getenv("BITABLE_TOKEN")
-    )
-
-    lark_queue = LarkQueue(
-        base_manager=base_manager,
-        bitable_table_id=os.getenv("BUBBLE_TABLE_ID")
-    )
-
-    file_manager = FileManager(
-        lark_client=lark,
-        bitable_token=os.getenv('BITABLE_TOKEN')
-    )
-
-    logs.info('loading ai models...')
-
-    eloquent = EloquentOpenAI()
-
-    transcriber = Transcriber()
-
-    ollama_client = Ollama('llama3:instruct')
-
-    pronunciation_analyzer = PronunciationAnalyzer()
-
-    logs_manager = Logger(
-        base_manager=base_manager
-    )
-
-    fluency_analysis = FluencyAnalysis()
-
-    script_reader = ScriptReadingEvaluator(
-        base_manager=base_manager,
-        file_manager=file_manager,
-        transcriber=transcriber,
-        eloquent=eloquent,
-        ollama_client=ollama_client,
-        logs_manager=logs_manager,
-        fluency_analysis=fluency_analysis,
-        pronunciation_analyzer=pronunciation_analyzer,
-        logs=logs
-    )
-
-    quote_translation = QuoteTranslationEvaluator(
-        file_manager=file_manager,
-        base_manager=base_manager,
-        openai=eloquent
-    )
-
-    worker = Worker(
-        task_queue=task_queue,
-        lark_queue=lark_queue,
-        script_reader=script_reader,
-        quote_translation=quote_translation,
-        logs=logs
-    )
-    
-    worker.create_storage_folders()
-
-    await worker.processing()
-
-if __name__ == '__main__':
-    
-    load_dotenv('.env')
-
     environment = os.getenv('ENV')
-    print(environment)
+    print("Environment: ", environment)
 
     info_log_file = os.path.join("worker_info.log")
     error_log_file = os.path.join("worker_error.log")
@@ -200,13 +126,85 @@ if __name__ == '__main__':
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 
+    lark = Lark(
+        app_id=os.getenv("APP_ID"),
+        app_secret=os.getenv("APP_SECRET")
+    )
+
+    base_manager = BitableManager(
+        lark_client=lark,
+        bitable_token=os.getenv("BITABLE_TOKEN")
+    )
+
+    # lark logging handler
+    lark_log_handler = LarkHandler(
+        bitable_manager=base_manager,
+        log_table_token=os.getenv("LOG_MONITORING_TABLE_ID")
+    )
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[info_handler, error_handler, stream_handler]
+        handlers=[info_handler, error_handler, stream_handler, lark_log_handler]
     )
 
     logger = logging.getLogger()
     logger.info('loading environment variables...')
+
+    task_queue = TaskQueue()
+
+    lark_queue = LarkQueue(
+        base_manager=base_manager,
+        bitable_table_id=os.getenv("BUBBLE_TABLE_ID")
+    )
+
+    file_manager = FileManager(
+        lark_client=lark,
+        bitable_token=os.getenv('BITABLE_TOKEN')
+    )
+
+    logger.info('loading ai models...')
+
+    eloquent = EloquentOpenAI()
+
+    transcriber = Transcriber()
+
+    ollama_client = Ollama('llama3:instruct')
+
+    pronunciation_analyzer = PronunciationAnalyzer()
+
+    fluency_analysis = FluencyAnalysis()
+
+    script_reader = ScriptReadingEvaluator(
+        base_manager=base_manager,
+        file_manager=file_manager,
+        transcriber=transcriber,
+        eloquent=eloquent,
+        ollama_client=ollama_client,
+        fluency_analysis=fluency_analysis,
+        pronunciation_analyzer=pronunciation_analyzer,
+    )
+
+    quote_translation = QuoteTranslationEvaluator(
+        file_manager=file_manager,
+        base_manager=base_manager,
+        openai=eloquent
+    )
+
+    worker = Worker(
+        task_queue=task_queue,
+        lark_queue=lark_queue,
+        script_reader=script_reader,
+        quote_translation=quote_translation,
+        logs=logger
+    )
     
-    asyncio.run(main(logs=logger))
+    worker.create_storage_folders()
+
+    await worker.processing()
+
+if __name__ == '__main__':
+    
+    load_dotenv('.env')
+
+    asyncio.run(main())
