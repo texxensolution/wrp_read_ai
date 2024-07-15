@@ -65,6 +65,7 @@ class ScriptReadingEvaluator:
     async def process(self, task: Task):
         """process function will perform all validation and evaluation for script reading"""
         logger = logging.getLogger()
+        version = os.getenv("VERSION")
         time_start = time.time()
         try:
             payload = task.payload
@@ -144,6 +145,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('pacing_score', pacing_score) \
                 .add_key_value('fluency', fluency) \
                 .add_key_value('processing_duration', processing_duration) \
+                .add_key_value('version', version) \
                 .attach_media_file_token('audio', file_token) \
                 .add_key_value('request_cost', cost) \
                 .build()
