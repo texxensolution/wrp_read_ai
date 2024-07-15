@@ -105,8 +105,7 @@ class Worker:
 
 async def main():
     """main initializer"""
-    environment = os.getenv('ENV')
-    print("Environment: ", environment)
+    
 
     info_log_file = os.path.join("worker_info.log")
     error_log_file = os.path.join("worker_error.log")
@@ -125,7 +124,7 @@ async def main():
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-
+    
     lark = Lark(
         app_id=os.getenv("APP_ID"),
         app_secret=os.getenv("APP_SECRET")
@@ -148,9 +147,17 @@ async def main():
         handlers=[info_handler, error_handler, stream_handler, lark_log_handler]
     )
 
+    environment = os.getenv("ENV")
+    version = os.getenv("VERSION")
+
     logger = logging.getLogger()
+
+    logger.info(f"Environment: %s", environment)
+    logger.info(f"Version: %s", version)
+
     logger.info('loading environment variables...')
 
+    
     task_queue = TaskQueue()
 
     lark_queue = LarkQueue(
