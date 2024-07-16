@@ -135,16 +135,16 @@ async def main():
         bitable_token=os.getenv("BITABLE_TOKEN")
     )
 
-    # lark logging handler
-    lark_log_handler = LarkHandler(
-        bitable_manager=base_manager,
-        log_table_token=os.getenv("LOG_MONITORING_TABLE_ID")
-    )
+    # # lark logging handler
+    # lark_log_handler = LarkHandler(
+    #     bitable_manager=base_manager,
+    #     log_table_token=os.getenv("LOG_MONITORING_TABLE_ID")
+    # )
 
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[info_handler, error_handler, stream_handler, lark_log_handler]
+        handlers=[info_handler, error_handler, stream_handler]
     )
 
     environment = os.getenv("ENV")
