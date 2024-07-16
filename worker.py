@@ -103,11 +103,7 @@ class Worker:
                 await asyncio.sleep(3)
             await asyncio.sleep(0)
 
-
-
-if __name__ == '__main__':
-    load_dotenv('.env')
-
+async def main():
     """main initializer"""
     
 
@@ -216,7 +212,9 @@ if __name__ == '__main__':
     
     worker.create_storage_folders()
 
-    async def main():
-        await worker.processing()
+    await worker.processing()
+
+if __name__ == '__main__':
+    load_dotenv('.env')
 
     asyncio.run(main())
