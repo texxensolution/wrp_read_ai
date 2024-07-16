@@ -92,6 +92,8 @@ class ScriptReadingEvaluator:
             # download the mp3 file
             download_mp3(audio_url, filename)
 
+            converted_audio_path = None
+
             logger.info("converting mp3 to wav file...")
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
