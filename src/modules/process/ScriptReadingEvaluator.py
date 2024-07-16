@@ -89,10 +89,10 @@ class ScriptReadingEvaluator:
 
             filename = self.create_audio_path(user_id, email)
 
+            converted_audio_path = None
             # download the mp3 file
             download_mp3(audio_url, filename)
 
-            converted_audio_path = None
 
             logger.info("converting mp3 to wav file...")
             # mp3 to wav conversion
