@@ -8,7 +8,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 from src.modules.common import (DataTransformer, FluencyAnalysis, LarkQueue,
-                                Logger, PronunciationAnalyzer, Task, TaskQueue)
+                                Logger, PronunciationAnalyzer, Task, TaskQueue, ScriptExtractor)
 from src.modules.lark import BitableManager, FileManager, Lark
 from src.modules.ollama import EloquentOpenAI, Ollama
 from src.modules.process import (QuoteTranslationEvaluator,
@@ -157,12 +157,13 @@ async def main():
 
     logger.info('loading environment variables...')
 
-    
     task_queue = TaskQueue()
 
     lark_queue = LarkQueue(
         base_manager=base_manager,
-        bitable_table_id=os.getenv("BUBBLE_TABLE_ID")
+        bitable_table_id=os.getenv("BUBBLE_TABLE_ID"),
+        version=version,
+        environment=environment
     )
 
     file_manager = FileManager(
@@ -182,6 +183,8 @@ async def main():
 
     fluency_analysis = FluencyAnalysis()
 
+    script_extractor = ScriptExtractor(version=version)
+
     script_reader = ScriptReadingEvaluator(
         base_manager=base_manager,
         file_manager=file_manager,
@@ -189,6 +192,7 @@ async def main():
         eloquent=eloquent,
         ollama_client=ollama_client,
         fluency_analysis=fluency_analysis,
+        script_extractor=script_extractor,
         pronunciation_analyzer=pronunciation_analyzer,
     )
 

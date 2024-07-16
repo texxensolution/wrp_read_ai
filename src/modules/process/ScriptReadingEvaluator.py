@@ -11,14 +11,14 @@ from src.modules.builders import LarkPayloadBuilder
 from src.modules.common import (AudioConverter, AudioProcessor,
                                 FeatureExtractor, FluencyAnalysis, Logger,
                                 PhonemicAnalysis, PronunciationAnalyzer, Task,
-                                TextPreprocessor, TranscriptionProcessor)
+                                TextPreprocessor, TranscriptionProcessor, ScriptExtractor)
 from src.modules.common.utilities import delete_file, download_mp3
 from src.modules.exceptions import (AudioIncompleteError,
                                     EvaluationFailureError, FileUploadError)
 from src.modules.lark import BitableManager, FileManager
 from src.modules.ollama import EloquentOpenAI, Ollama
 from src.modules.whisper import Transcriber
-from src.modules.enums.LogStatusError import LogStatusError
+from src.modules.enums import Versioning, LogStatusError
 
 
 @dataclass
@@ -30,6 +30,7 @@ class ScriptReadingEvaluator:
     file_manager: FileManager
     fluency_analysis: FluencyAnalysis
     pronunciation_analyzer: PronunciationAnalyzer
+    script_extractor: ScriptExtractor
     ollama_client: Union[Ollama, None] = None
     destination_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
 
@@ -46,6 +47,7 @@ class ScriptReadingEvaluator:
 
             Speaker Transcription: {speaker_transcript}
             Given Script: {given_transcript}
+            - Dont show any criteria just the evaluation
         """
 
     async def upload_audio_to_lark(self, filename):
@@ -66,6 +68,7 @@ class ScriptReadingEvaluator:
         """process function will perform all validation and evaluation for script reading"""
         logger = logging.getLogger()
         version = os.getenv("VERSION")
+        environment = os.getenv("ENV").upper()
         time_start = time.time()
         try:
             payload = task.payload
@@ -77,15 +80,25 @@ class ScriptReadingEvaluator:
             name = payload['name']
 
             no_of_retries = int(payload['no_of_retries'])
-            given_transcription = payload['given_transcription']
+
+            if version == "1.0.1":
+                given_transcription = payload['given_transcription']
+            elif version == "1.0.2":
+                given_transcription = self.script_extractor.get_script(script_id)
+                
 
             filename = self.create_audio_path(user_id, email)
 
             # download the mp3 file
             download_mp3(audio_url, filename)
 
+            logger.info("converting mp3 to wav file...")
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
+
+            logger.info("removing silence from audio...")
+            # remove silence from audio
+            AudioProcessor.remove_silence_from_audio(converted_audio_path)
 
             file_token = await self.upload_audio_to_lark(filename)
 
@@ -117,7 +130,7 @@ class ScriptReadingEvaluator:
             words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, audio_duration)
             wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
             pronunciation_score = self.pronunciation_analyzer.predict(converted_audio_path)
-            evaluation, cost = await self.async_ai_grading_ollama(transcription, given_transcription)
+            evaluation, cost = await self.async_ai_grading_ollama(transcription, given_transcription, environment)
             pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
 
             logger.info("🧐 calculating fluency of the speaker..." )
@@ -146,6 +159,7 @@ class ScriptReadingEvaluator:
                 .add_key_value('fluency', fluency) \
                 .add_key_value('processing_duration', processing_duration) \
                 .add_key_value('version', version) \
+                .add_key_value('environment', environment) \
                 .attach_media_file_token('audio', file_token) \
                 .add_key_value('request_cost', cost) \
                 .build()
@@ -321,11 +335,14 @@ class ScriptReadingEvaluator:
 
         return result, cost
 
-    async def async_ai_grading_ollama(self, transcription: str, given_script: str):
+    async def async_ai_grading_ollama(self, transcription: str, given_script: str, environment: str):
         combined_prompt = self.generate_prompt(
             speaker_transcript=transcription,
             given_transcript=given_script
         )
-        result, cost = await self.ollama_client.chat_async(combined_prompt)
+        if environment == "DEVELOPMENT":
+            result, cost = await self.ollama_client.groq_chat_async(combined_prompt)
+        else:
+            result, cost = await self.ollama_client.chat_async(combined_prompt)
         return result, cost
     

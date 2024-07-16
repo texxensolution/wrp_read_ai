@@ -1,9 +1,30 @@
 import librosa
 import numpy as np
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
 from scipy.signal import find_peaks
 
 class AudioProcessor:
+    
     """audio processor class"""
+    @staticmethod
+    # Load the audio file
+    def remove_silence_from_audio(audio_path, silence_thresh=-50, min_silence_len=500, keep_silence=500):
+        audio = AudioSegment.from_file(audio_path)
+
+        chunks = split_on_silence(
+            audio,
+            min_silence_len=min_silence_len,
+            silence_thresh=silence_thresh, 
+            keep_silence=keep_silence 
+        )
+
+        processed_audio = AudioSegment.empty()
+        for chunk in chunks:
+            processed_audio += chunk
+
+        processed_audio.export(audio_path, format="wav")
+
     @staticmethod
     def determine_wpm_category(wpm):
         """determine the wpm category of the speaker"""
