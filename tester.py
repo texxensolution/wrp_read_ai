@@ -1,7 +1,8 @@
 import asyncio
+import requests
 from aiohttp import ClientSession
 
-async def chat_async(prompt: str):
+def chat_async(prompt: str):
     """async wrapper for ollama chat request"""
     data = {
         "model": "llama3:instruct",
@@ -11,17 +12,17 @@ async def chat_async(prompt: str):
             "temperature": 0
         }
     }
-    try:
-        async with ClientSession() as session:
-            async with session.post('http://172.16.1.4:11434/api/chat', json=data) as response:
-                response = await response.json()
-                return response['message']['content'], 0
-    except Exception as err:
-        raise Exception("error:", err) from err
     
-async def main():
-    result = await chat_async("hello, world")
-    print(result)
+    response = requests.post('http://172.16.1.4:11434/api/chat', json=data)
 
+    print(response)
+    # try:
+    #     async with ClientSession() as session:
+    #         async with session.post('http://172.16.1.4:11434/api/chat', json=data) as response:
+    #             response = await response.json()
+    #             return response['message']['content'], 0
+    # except Exception as err:
+    #     raise Exception("error:", err) from err
+    
 if __name__ == "__main__":
-    asyncio.run(main())
+    chat_async("hello, world")
