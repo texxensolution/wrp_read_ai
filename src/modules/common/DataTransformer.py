@@ -4,6 +4,7 @@ from lark_oapi.api.bitable.v1 import AppTableRecord
 class DataTransformer:
     @staticmethod
     def select_keys(payload: Dict[str, Any], columns: List[str]):
+        """select keys to extract from dictionary input"""
         data = {}
 
         for key, value in payload.items():
@@ -14,6 +15,7 @@ class DataTransformer:
     
     @staticmethod
     def convert_raw_lark_record_to_dict(records: List[AppTableRecord], columns: List[str]):
+        """convert raw field from lark to dictionary object"""
         if len(records) == 0:
             return
 

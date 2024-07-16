@@ -1,3 +1,10 @@
 venv
+myenv
 .env
 .idea
+__pycache__/
+*.py[cod]
+**/__pycache__/
+
+worker_error.log
+worker_info.log

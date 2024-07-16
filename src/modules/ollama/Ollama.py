@@ -1,21 +1,17 @@
 from dataclasses import dataclass
-import requests
+from aiohttp import ClientSession
+from groq import AsyncGroq
+import os
 
-@dataclass
 class Ollama:
-    model: str
-    host: str
-    messages = []
+    def __init__(self, model: str, host: str = 'http://172.16.1.4:11434/api/chat'):
+        self.model: str = model
+        self.host: str = host
+        self.groq_client = AsyncGroq(
+            api_key=os.getenv('GROQ_API_KEY')
+        )
 
     def combine_prompt_and_message(self, prompt: str, message: str):
-        # self.messages.append({
-        #     "role": "assistant",
-        #     "content": prompt
-        # })
-        # self.messages.append({
-        #     "role": "user",
-        #     "content": message
-        # })
         prompt_message = [
             {
                 "role": "assistant",
@@ -28,22 +24,33 @@ class Ollama:
         ]
         return prompt_message
 
-    def generate(self, prompt: str):
+    async def chat_async(self, prompt: str):
+        """async wrapper for ollama chat request"""
         data = {
             "model": self.model,
-            "messages": prompt,
+            "messages": [{"role": "system", "content": prompt}],
             "stream": False,
             "options": {
                 "temperature": 0
             }
         }
-
-        response = requests.post(f"http://{self.host}/api/chat", json=data)
-
-        generated = response.json()
-
-        return generated['message']['content']
+        try:
+            async with ClientSession() as session:
+                async with session.post(self.host, json=data) as response:
+                    response = await response.json()
+                    return response['message']['content'], 0
+        except Exception as err:
+            raise Exception("error:", err) from err
     
-    def clear_history(self):
-        self.messages = []
+    async def groq_chat_async(self, prompt: str):
+        completion = await self.groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": prompt
+                }
+            ],
+            model="llama3-8b-8192"
+        )
 
+        return completion.choices[0].message.content, 0

@@ -4,7 +4,7 @@ import openai
 from tokencost import calculate_prompt_cost
 
 class EloquentOpenAI:
-    def __init__(self, model = 'gpt-3.5-turbo', classifier_path: str = "classifier.joblib"):
+    def __init__(self):
         self.openai_key = os.getenv('OPENAI2_KEY')
         self.fillers = ['ay', 'ah', 'eh', 'ano', 'um', 'uhm']
         self.joined_fillers = ", ".join(self.fillers)

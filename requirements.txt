@@ -15,3 +15,5 @@ loguru
 transformers
 torch
 deepgram-sdk==3.*
+polars
+groq

@@ -1,10 +1,33 @@
 import librosa
 import numpy as np
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
 from scipy.signal import find_peaks
 
 class AudioProcessor:
+    
+    """audio processor class"""
+    @staticmethod
+    # Load the audio file
+    def remove_silence_from_audio(audio_path, silence_thresh=-50, min_silence_len=500, keep_silence=500):
+        audio = AudioSegment.from_file(audio_path)
+
+        chunks = split_on_silence(
+            audio,
+            min_silence_len=min_silence_len,
+            silence_thresh=silence_thresh, 
+            keep_silence=keep_silence 
+        )
+
+        processed_audio = AudioSegment.empty()
+        for chunk in chunks:
+            processed_audio += chunk
+
+        processed_audio.export(audio_path, format="wav")
+
     @staticmethod
     def determine_wpm_category(wpm):
+        """determine the wpm category of the speaker"""
         wpm = int(wpm)
         if wpm > 160 and wpm <= 200:
             return 4
@@ -19,11 +42,13 @@ class AudioProcessor:
 
     @staticmethod
     def is_audio_more_than_30_secs(y, sr):
+        """check if the audio input is more than 30 secs"""
         duration = librosa.get_duration(y=y, sr=sr)
         return True if duration > 30 else False
     
     @staticmethod
     def determine_pitch_consistency(pitch_std):
+        """calculate the std deviation between the pitch of the audio recording"""
         if pitch_std <= 5:
             return 5  # Excellent pitch control
         elif pitch_std <= 10:
@@ -37,6 +62,7 @@ class AudioProcessor:
     
     @staticmethod
     def pitch_stability_score(y, sr):
+        """calculate the pitch stability or the standard deviation of the audio"""
         # Extract pitch (fundamental frequency) using librosa
         pitches, magnitudes = librosa.core.piptrack(y=y, sr=sr)
         pitch_values = []
@@ -48,12 +74,6 @@ class AudioProcessor:
         
         # Convert to numpy array for easier manipulation
         pitch_values = np.array(pitch_values)
-        
-        # Calculate pitch range
-        pitch_range = np.ptp(pitch_values)
-        
-        # Calculate pitch variation (standard deviation)
-        pitch_variation = np.std(pitch_values)
         
         # Calculate pitch stability (peaks)
         peaks, _ = find_peaks(pitch_values)
@@ -79,10 +99,12 @@ class AudioProcessor:
 
     @staticmethod
     def calculate_words_per_minute(transcription: str, duration_sec):
+        """calculate words per minute using transcription and duration of the audio"""
         return len(transcription.split(' ')) / (duration_sec / 60) # convert duration to minute
     
     @staticmethod
     def determine_speaker_pacing(wpm: float, avg_pause_duration: float):
+        """calculate the speaker pacing using word per minute and average pause duration"""
         wpm_score = AudioProcessor.determine_wpm_category(wpm)
         pause_score = AudioProcessor.determine_pause_score(avg_pause_duration)
         final_score = (wpm_score + pause_score) / 2
@@ -90,6 +112,7 @@ class AudioProcessor:
 
     @staticmethod
     def determine_pause_score(avg_pause_duration):
+        """calculate the pause score of the speaker"""
         if avg_pause_duration <= 0.2:
             return 5
         elif 0.2 < avg_pause_duration <= 0.4:

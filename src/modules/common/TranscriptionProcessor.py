@@ -6,6 +6,7 @@ import math
 class TranscriptionProcessor:
     @staticmethod
     def compute_distance(transcription: str, given_script: str):
+        """compute the distance between two string input using levenshtein algorithm"""
         transcription = TextPreprocessor.normalize(transcription)
         given_script = TextPreprocessor.normalize(given_script)
 

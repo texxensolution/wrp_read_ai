@@ -1,0 +1,13 @@
+2024-07-05 11:03:45,541 - ERROR - applicant name: Katlyn Talampas Patuga, message: Provided url is invalid.
+2024-07-05 11:11:33,551 - ERROR - applicant name: Katlyn Talampas Patuga, message: Provided url is invalid.
+2024-07-05 11:14:08,964 - ERROR - applicant name: Katlyn Talampas Patuga, message: Provided url is invalid.
+2024-07-15 15:26:49,738 - ERROR - ('error:', ClientConnectorError(ConnectionKey(host='172.16.1.4', port=11434, is_ssl=False, ssl=True, proxy=None, proxy_auth=None, proxy_headers_hash=None), OSError(22, 'The semaphore timeout period has expired', None, 121, None)))
+2024-07-15 16:44:01,829 - ERROR - ('error:', ClientConnectorError(ConnectionKey(host='172.16.1.4', port=11434, is_ssl=False, ssl=True, proxy=None, proxy_auth=None, proxy_headers_hash=None), OSError(22, 'The semaphore timeout period has expired', None, 121, None)))
+2024-07-15 16:44:14,652 - ERROR - division by zero
+2024-07-16 10:06:16,505 - ERROR - ('error:', ClientConnectorError(ConnectionKey(host='172.16.1.4', port=11434, is_ssl=False, ssl=True, proxy=None, proxy_auth=None, proxy_headers_hash=None), OSError(22, 'The semaphore timeout period has expired', None, 121, None)))
+2024-07-16 10:38:10,098 - ERROR - local variable 'given_transcription' referenced before assignment
+2024-07-16 10:41:00,027 - ERROR - ScriptReadingEvaluator.async_ai_grading_ollama() missing 1 required positional argument: 'environment'
+2024-07-16 11:09:41,160 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
+2024-07-16 11:10:57,595 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
+2024-07-16 11:13:28,052 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
+2024-07-16 11:14:43,187 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
