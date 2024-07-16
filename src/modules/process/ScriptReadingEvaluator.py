@@ -96,9 +96,10 @@ class ScriptReadingEvaluator:
             # mp3 to wav conversion
             converted_audio_path = AudioConverter.convert_mp3_to_wav(filename)
 
-            logger.info("removing silence from audio...")
-            # remove silence from audio
-            AudioProcessor.remove_silence_from_audio(converted_audio_path)
+            if version == "1.0.2":
+                logger.info("removing silence from audio...")
+                # remove silence from audio
+                AudioProcessor.remove_silence_from_audio(converted_audio_path)
 
             file_token = await self.upload_audio_to_lark(filename)
 
