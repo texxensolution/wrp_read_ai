@@ -15,7 +15,7 @@ def chat_async(prompt: str):
     
     response = requests.post('http://172.16.1.4:11434/api/chat', json=data)
 
-    print(response)
+    print(response.content)
     # try:
     #     async with ClientSession() as session:
     #         async with session.post('http://172.16.1.4:11434/api/chat', json=data) as response:

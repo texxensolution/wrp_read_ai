@@ -8,6 +8,7 @@ import asyncio
 from src.modules.lark import Lark
 from loguru import logger
 import requests
+import aiofiles 
 
 class FileManager:
     def __init__(self, lark_client: Lark, bitable_token: str):
@@ -27,6 +28,36 @@ class FileManager:
             print(f"Failed to download file. Status code: {response.status_code}")
 
     async def upload_async(self, file_path):
+        if not os.path.exists(file_path):
+            return
+        filename = os.path.split(file_path)[1]
+
+        size = self.get_file_size(file_path)
+
+        file = open(file_path, 'rb')
+
+        request: UploadAllMediaRequest = UploadAllMediaRequest.builder() \
+            .request_body(UploadAllMediaRequestBody.builder()
+                .file_name(filename)
+                .parent_type("bitable_file")
+                .parent_node(self.bitable_token)
+                .size(size) \
+                .file(file) \
+                .build()) \
+            .build()
+
+        response: UploadAllMediaResponse = await self.lark.drive.v1.media.aupload_all(request)
+
+        if response.code != 0:
+            raise FileUploadError(
+                code=response.code, 
+                message=response.msg, 
+                file_path=file_path
+            )
+
+        return response.data.file_token
+
+    async def upload_async_copy(self, file_path):
         if not os.path.exists(file_path):
             return
         filename = os.path.split(file_path)[1]

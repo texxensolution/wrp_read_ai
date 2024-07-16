@@ -117,7 +117,6 @@ class ScriptReadingEvaluator:
                 )
 
             logger.info('📜 transcribing...')
-            # transcription = self.transcriber.transcribe_with_google(converted_audio_path)
             transcription = await self.transcriber.transcribe_with_deepgram_async(converted_audio_path)
             transcription = TextPreprocessor.normalize(transcription)
             given_transcription = TextPreprocessor.normalize_text_with_new_lines(given_transcription)

@@ -11,3 +11,9 @@
 2024-07-16 11:10:57,595 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
 2024-07-16 11:13:28,052 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
 2024-07-16 11:14:43,187 - ERROR - applicant name: Jay Ortaleza Fernandez, message: audio is less than 30 secs
+2024-07-16 15:11:44,512 - ERROR - cannot pickle '_io.BufferedReader' object
+2024-07-16 15:11:59,142 - ERROR - cannot pickle '_io.BufferedReader' object
+2024-07-16 15:47:43,358 - ERROR - 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2024-07-16 15:47:58,052 - ERROR - 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2024-07-16 15:48:12,210 - ERROR - 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2024-07-16 15:56:35,011 - ERROR - binary mode doesn't take an encoding argument
