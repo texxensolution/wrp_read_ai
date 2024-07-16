@@ -249,10 +249,10 @@ class ScriptReadingEvaluator:
             return False
 
         finally:
-            if os.path.exists(filename):
+            if filename and os.path.exists(filename):
                 delete_file(filename)
 
-            if os.path.exists(converted_audio_path):
+            if converted_audio_path and os.path.exists(converted_audio_path):
                 delete_file(converted_audio_path)
             
     def calculate_remarks(self, pronunciation: float, wpm_category: int, similarity_score: float, pitch_consistency: int, pacing_score: int, fluency: int):

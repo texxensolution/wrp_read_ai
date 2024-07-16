@@ -88,20 +88,19 @@ class Worker:
 
         self.sync()
 
-        while True:
-            if not self.task_queue.is_empty():
-                queue_length = self.task_queue.remaining()
-                queue_display_str = self.calculate_queued_task_display(queue_length)
-                self.logs.info(queue_display_str)
+        if not self.task_queue.is_empty():
+            queue_length = self.task_queue.remaining()
+            queue_display_str = self.calculate_queued_task_display(queue_length)
+            self.logs.info(queue_display_str)
 
-                task = self.task_queue.pop()
-                name = task.payload['name']
-                email = task.payload['email']
-                self.logs.info('⚙️  processing: name=%s, email=%s...', name, email)
-                await self.switch_cases(task)
-            else:
-                self.sync()
-                await asyncio.sleep(3)
+            task = self.task_queue.pop()
+            name = task.payload['name']
+            email = task.payload['email']
+            self.logs.info('⚙️  processing: name=%s, email=%s...', name, email)
+            await self.switch_cases(task)
+        else:
+            self.sync()
+            await asyncio.sleep(3)
 
 async def main():
     """main initializer"""
@@ -212,7 +211,8 @@ async def main():
     
     worker.create_storage_folders()
 
-    await worker.processing()
+    while True:
+        await worker.processing()
 
 if __name__ == '__main__':
     
