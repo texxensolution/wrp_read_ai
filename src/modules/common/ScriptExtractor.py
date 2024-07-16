@@ -3,9 +3,10 @@ from .TextPreprocessor import TextPreprocessor
 
 class ScriptExtractor:
     def __init__(self, version: str):
-        filename = f"dictionary_{version}.csv"
-        self.reference: pl.DataFrame = pl.read_csv(filename)
-        self.cache = {}
+        if version != "1.0.1":
+            filename = f"dictionary_{version}.csv"
+            self.reference: pl.DataFrame = pl.read_csv(filename)
+            self.cache = {}
 
     def get_script(self, id: str) -> str:
         if id in self.cache:
