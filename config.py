@@ -3,9 +3,9 @@ import logging
 import sys
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
-from src.modules.common import AppContext, LarkQueue, TaskQueue
-from src.modules.lark import BitableManager, FileManager, Lark
-from src.modules.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
+from src.common import AppContext, LarkQueue, TaskQueue
+from src.lark import BitableManager, FileManager, Lark
+from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService
 
 load_dotenv('.env')

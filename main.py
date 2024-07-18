@@ -1,9 +1,8 @@
 import asyncio
-from src.modules.enums import AssessmentType
-from src.modules.common import AppContext
-from src.modules.common import Worker
+from src.enums import AssessmentType
+from src.common import AppContext, Worker
 from config import ctx
-from src.modules.tasks.script_reading_process_callback import script_reading_process_cb
+from src.tasks.script_reading_process_callback import script_reading_process_cb
 
 async def main(ctx: AppContext, worker: Worker):
     should_exit = False
