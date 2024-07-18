@@ -13,6 +13,9 @@ load_dotenv('.env')
 info_log_file = os.path.join("logs", "worker_info.log")
 error_log_file = os.path.join("logs", "worker_error.log")
 
+if not os.path.exists("logs"):
+    os.makedirs("logs")
+
 # Configure the info file handler to log info and above
 info_handler = RotatingFileHandler(info_log_file, maxBytes=10 ** 6, backupCount=5, encoding='utf-8')
 info_handler.setLevel(logging.INFO)
