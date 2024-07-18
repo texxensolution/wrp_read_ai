@@ -1,28 +1,5 @@
-import asyncio
-import requests
-from aiohttp import ClientSession
+import json
 
-def chat_async(prompt: str):
-    """async wrapper for ollama chat request"""
-    data = {
-        "model": "llama3:instruct",
-        "messages": [{"role": "system", "content": prompt}],
-        "stream": False,
-        "options": {
-            "temperature": 0
-        }
-    }
-    
-    response = requests.post('http://172.16.1.4:11434/api/chat', json=data)
+json_data = "{\"fields\": {\"name\": \"Ryan Jay Ortaleza Fernandez \", \"email\": \"sample17283@gamil.com\", \"transcription\": \"the sun dipped below the horizon casting a golden glow over the city as people hurried to finish their d ay in the quiet library students gathered around tables their whispers merging with the rustle of pages and clicking of keyboards the garden was alive with the buzz of bees and the sweet aroma of blooming flowers inviting visitors to linger as the storm cleared a vibrant rainbow arced across the sky promising brighter days and a mom ent of peace the market was bustling with vendors shouting prices shoppers bargaining and a scent of fresh produce filling the air on the crowded train strangers share d a moment of laughter over a childs innocent antics creating a brief mud early morning joggers enjoyed the cool breeze and the empty streets their footsteps echoing i n the quiet of dawn the chef presented the dish with pride its colors vibrant and inviting promising a feast for both eyes and palate in the workshop the sound of tool s and the smell of wood shavings told stories of craftsmanship and dedication the old bookstores smelled of musty pages and history each book a portal to another time and place waiting to be explored\", \"given_transcription\": \"the sun dipped below the horizon casting a golden glow over the city as people hurried to finish their d ay in the quiet library students gathered around tables their whispers merging with the rustle of pages and clicking of keyboards the garden was alive with the buzz of bees and the sweet aroma of blooming flowers inviting visitors to linger as the storm cleared a vibrant rainbow arched across the sky promising brighter days and a mo ment of peace the market was bustling with vendors shouting prices shoppers bargaining and the scent of fresh produce filling the air on the crowded train strangers sh ared a moment of laughter over a childs innocent antics creating a brief bond early morning joggers enjoyed the cool breeze and the empty streets their footsteps echoi ng in the quiet of dawn the chef presented the dish with pride its colors vibrant and inviting promising a feast for both eyes and palate in the workshop the sound of tools and the smell of wood shavings told stories of craftsmanship and dedication the old bookstore smelled of musty pages and history each book a portal to another ti me and place waiting to be explored\", \"script_id\": \"script-0002\", \"evaluation\": \"The speaker transcription matches the given script with no notable mispronunci ations. The two texts are identical, suggesting that the speaker accurately conveyed the given script without any significant deviations or errors. Therefore, I would evaluate this transcription as accurate and reliable.\\n\\nEvaluation: Accurate and Reliable\", \"audio\": [{\"file_token\": \"JC8Cb6BrIo11NGxliXRuZhGKsze\"}], \"pronunciation\": 5, \"fluency\": 5, \"similarity_score\": 4.964943032427695, \"pacing_score\": 5.0, \"wpm_category\": 5, \"words_per_minute\": 142.55906793868272, \"audio_d uration_seconds\": 82.913, \"avg_pause_duration\": 0.598060606060606, \"processing_duration\": 15.96789026260376, \"parent_record_id\": \"recuiLKIbhhO43\", \"version\" : \"1.0.2\", \"environment\": \"DEVELOPMENT\"}}"
 
-    print(response.content)
-    # try:
-    #     async with ClientSession() as session:
-    #         async with session.post('http://172.16.1.4:11434/api/chat', json=data) as response:
-    #             response = await response.json()
-    #             return response['message']['content'], 0
-    # except Exception as err:
-    #     raise Exception("error:", err) from err
-    
-if __name__ == "__main__":
-    chat_async("hello, world")
+print(json.dumps(json.loads(json_data), indent=4))

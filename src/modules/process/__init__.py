@@ -1,2 +1,0 @@
-from .ScriptReadingEvaluator import ScriptReadingEvaluator
-from .QuoteTranslationEvaluator import QuoteTranslationEvaluator

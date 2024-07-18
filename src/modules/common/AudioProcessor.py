@@ -3,13 +3,14 @@ import numpy as np
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from scipy.signal import find_peaks
+from typing import Literal
 
 class AudioProcessor:
     
     """audio processor class"""
     @staticmethod
     # Load the audio file
-    def remove_silence_from_audio(audio_path, silence_thresh=-50, min_silence_len=500, keep_silence=500):
+    def remove_silence_from_audio(audio_path, silence_thresh=-50, min_silence_len=500, keep_silence=500, _format: Literal["mp3", "wav"] = "mp3"):
         audio = AudioSegment.from_file(audio_path)
 
         chunks = split_on_silence(
@@ -23,7 +24,8 @@ class AudioProcessor:
         for chunk in chunks:
             processed_audio += chunk
 
-        processed_audio.export(audio_path, format="wav")
+        processed_audio.export(audio_path, format=_format)
+        return processed_audio.duration_seconds
 
     @staticmethod
     def determine_wpm_category(wpm):

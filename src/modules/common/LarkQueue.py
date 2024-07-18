@@ -10,18 +10,13 @@ class LarkQueue:
     version: str
     environment: str
 
-    def get_items(self) -> List[AppTableRecord]:
+    async def get_items(self) -> List[AppTableRecord]:
         # query = f"AND(AND(AND(OR(CurrentValue.[status] = \"\", CurrentValue.[status] = \"failed\"), CurrentValue.[no_of_retries] <= 3), CurrentValue.[version] = \"{self.version}\"), CurrentValue.[environment] = \"{self.environment.upper()}\")"
-        if self.version == "1.0.1":
-            query = "AND(OR(CurrentValue.[status] = \"\", CurrentValue.[status] = \"failed\"), CurrentValue.[no_of_retries] <= 3)"
-        elif self.version == "1.0.2":
-            query = f"AND(AND(CurrentValue.[version] = \"{self.version}\", CurrentValue.[environment] = \"{self.environment.upper()}\"), AND(CurrentValue.[status] = \"\", CurrentValue.[no_of_retries] <= 3))"
-        print(query)
-        records = self.base_manager.get_records(
+        query = f"AND(AND(CurrentValue.[version] = \"{self.version}\", CurrentValue.[environment] = \"{self.environment.upper()}\"), AND(CurrentValue.[status] = \"\", CurrentValue.[no_of_retries] <= 3))"
+        records = await self.base_manager.async_get_records(
             table_id=self.bitable_table_id,
             filter=query
         )
-
         return records
 
 # AND(

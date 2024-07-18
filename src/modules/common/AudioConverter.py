@@ -27,7 +27,7 @@ class AudioConverter:
 
             audio.export(new_filename, format='wav')
 
-            return new_filename
+            return new_filename, audio.duration_seconds
         except Exception as err:
             raise Exception(f"Failed to load {basename}: ", err)
 

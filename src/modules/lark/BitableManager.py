@@ -80,6 +80,27 @@ class BitableManager:
             raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
 
         return response
+    
+    async def async_get_records(self, table_id: str, filter=None, page_token=None, page_size=500):
+        request = ListAppTableRecordRequest.builder() \
+            .app_token(self.BITABLE_TOKEN) \
+            .table_id(table_id)
+        if filter:
+            request = request.filter(filter)
+        if page_token:
+            request = request.page_token(page_token)
+        request = request.page_size(page_size).build()
+
+        response = await self.lark.bitable.v1.app_table_record.alist(request)
+
+        if not response.success():
+            raise Exception(f"Request failed: code={response.code}, msg={response.msg}, log_id={response.get_log_id()}")
+
+        if response.data.total == 0:
+            return []
+
+        return response.data.items
+    
 
     def get_records(self, table_id, filter=None) -> List[AppTableRecord]:
         has_more = True
