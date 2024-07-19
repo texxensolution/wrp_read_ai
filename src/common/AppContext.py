@@ -6,7 +6,7 @@ from src.common.Constants import Constants
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
 from src.services import TranscriptionService, ScriptExtractorService, VoiceAnalyzerService, LlamaService, \
-    ApplicantSubmittedRecordService
+    ApplicantSubmittedRecordService, QuoteTranslationService
 from dataclasses import dataclass
 
 from src.stores import Stores
@@ -25,9 +25,9 @@ class AppContext:
         lark_queue: LarkQueue,
         logger: logging.Logger,
         task_queue: TaskQueue,
-        applicant_submitted_record_service: ApplicantSubmittedRecordService,
         constants: Constants,
         stores: Stores,
+        quote_translation_service: QuoteTranslationService,
         server_task: List[str] = os.getenv('SERVER_TASK'),
         version: str = os.getenv('VERSION'),
         environment: str = os.getenv('ENV')
@@ -43,7 +43,7 @@ class AppContext:
         self.server_task = server_task
         self.lark_queue: LarkQueue = lark_queue
         self.task_queue: TaskQueue = task_queue
+        self.quote_translation_service: QuoteTranslationService = quote_translation_service
         self.stores: Stores = stores
-        self.applicant_submitted_record_service: ApplicantSubmittedRecordService = applicant_submitted_record_service
         self.version: str = version
         self.environment: str = environment

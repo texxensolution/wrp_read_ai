@@ -6,8 +6,10 @@ from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
 from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
-    DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService
-from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore
+    DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService, QuoteTranslationService
+from src.services.QuoteTranslationService import QuoteTranslationService
+from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
+    ApplicantQuoteTranslationEvaluationStore
 
 load_dotenv('.env')
 
@@ -46,10 +48,12 @@ lark_client = Lark(
 BITABLE_TOKEN = os.getenv('BITABLE_TOKEN')
 BUBBLE_TABLE_ID = os.getenv('BUBBLE_TABLE_ID')
 SCRIPT_READING_TABLE_ID = os.getenv('SCRIPT_READING_TABLE_ID')
+QUOTE_TRANSLATION_TABLE_ID = os.getenv('QUOTE_TRANSLATION_TABLE_ID')
 VERSION = os.getenv('VERSION')
 environment = os.getenv('ENV')
 SERVER_TASK = os.getenv('SERVER_TASK').split(',')
 DEEPGRAM_TOKEN = os.getenv('DEEPGRAM_TOKEN')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 base_manager = BitableManager(
     lark_client=lark_client,
@@ -66,10 +70,14 @@ stores = Stores(
         table_id=SCRIPT_READING_TABLE_ID,
         base_manager=base_manager
     ),
+    applicant_qt_evaluation_store=ApplicantQuoteTranslationEvaluationStore(
+        table_id=QUOTE_TRANSLATION_TABLE_ID,
+        base_manager=base_manager
+    ),
     bubble_data_store=BubbleDataStore(
         table_id=BUBBLE_TABLE_ID,
         base_manager=base_manager
-    )
+    ),
 )
 
 constants = Constants(
@@ -96,10 +104,10 @@ ctx = AppContext(
     server_task=SERVER_TASK,
     environment=environment,
     version=VERSION,
-    applicant_submitted_record_service=ApplicantSubmittedRecordService(
-        base_manager=base_manager
-    ),
     stores=stores,
+    quote_translation_service=QuoteTranslationService(
+        token=GROQ_API_KEY
+    ),
     transcription_service=TranscriptionService(
         client=DeepgramTranscriptionService(token=DEEPGRAM_TOKEN)
     ),

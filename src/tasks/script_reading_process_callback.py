@@ -1,38 +1,15 @@
 import time
-
 import librosa
 import requests
 import os
-from src.common import AppContext, AudioConverter, AudioProcessor, TextPreprocessor, TranscriptionProcessor, \
+from src.common import AppContext, AudioProcessor, TextPreprocessor, TranscriptionProcessor, \
     FeatureExtractor
-from src.common.utilities import download_mp3, delete_file
+from src.common.utilities import download_mp3, delete_file, get_necessary_fields_from_payload
 from uuid import uuid4
-
-from src.enums import BubbleRecordStatus
 from src.exceptions import FileUploadError, EvaluationFailureError, AudioIncompleteError
 from speech_recognition.exceptions import TranscriptionFailed
 from typing import Dict
-from src.dtos import RequiredFieldsScriptReading, RecordingRelatedFieldsScore, ScriptReadingResultDTO
-
-
-def get_necessary_fields_from_payload(payload: Dict[str, str]):
-    user_id = payload['user_id']
-    email = payload['email']
-    record_id = payload['record_id']
-    audio_url = payload['audio_url']
-    script_id = payload['script_id']
-    name = payload['name']
-    no_of_retries = payload['no_of_retries']
-
-    return RequiredFieldsScriptReading(
-        name=name,
-        record_id=record_id,
-        user_id=user_id,
-        email=email,
-        audio_url=audio_url,
-        script_id=script_id,
-        no_of_retries=no_of_retries
-    )
+from src.dtos import RecordingRelatedFieldsScore, ScriptReadingResultDTO
 
 
 def generate_filename(email: str):

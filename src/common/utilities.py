@@ -1,9 +1,14 @@
+from typing import Dict
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 import os
 from functools import wraps
-from time import sleep 
+from time import sleep
+
+from src.dtos import RequiredFieldsScriptReading
+
 
 def retry(retries: int = 3, delay: int = 3):
     def decorator_retry(func):
@@ -64,3 +69,24 @@ def delete_file(file_path):
         print(f"🗑️  file '{file_path}' deleted...")
     except OSError as e:
         print(f"Error deleting file '{file_path}': {e}")
+
+def get_necessary_fields_from_payload(payload: Dict[str, str]):
+    user_id = payload['user_id']
+    email = payload['email']
+    record_id = payload['record_id']
+    audio_url = payload['audio_url']
+    script_id = payload['script_id']
+    given_transcription = payload['given_transcription']
+    name = payload['name']
+    no_of_retries = payload['no_of_retries']
+
+    return RequiredFieldsScriptReading(
+        name=name,
+        record_id=record_id,
+        user_id=user_id,
+        email=email,
+        given_transcription=given_transcription,
+        audio_url=audio_url,
+        script_id=script_id,
+        no_of_retries=no_of_retries
+    )

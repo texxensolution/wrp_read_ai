@@ -6,6 +6,7 @@ class RequiredFieldsScriptReading(BaseModel):
     name: str
     email: str
     record_id: str
+    given_transcription: str
     audio_url: str
     script_id: str
     no_of_retries: int

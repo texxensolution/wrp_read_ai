@@ -6,3 +6,4 @@ from .ScriptExtractorService import ScriptExtractorService
 from .OllamaService import OllamaService
 from .DeepgramTranscriptionService import DeepgramTranscriptionService
 from .ApplicantSubmittedRecordService import ApplicantSubmittedRecordService
+from .QuoteTranslationService import QuoteTranslationService
