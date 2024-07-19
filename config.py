@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue
 from src.lark import BitableManager, FileManager, Lark
 from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
-    DeepgramTranscriptionService, VoiceAnalyzerService
+    DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService
 
 load_dotenv('.env')
 
@@ -78,6 +78,9 @@ ctx = AppContext(
     server_task=SERVER_TASK,
     environment=environment,
     version=VERSION,
+    applicant_submitted_record_service=ApplicantSubmittedRecordService(
+        base_manager=base_manager
+    ),
     sr_unprocessed_table_id=BUBBLE_TABLE_ID,
     sr_processed_table_id=SCRIPT_READING_TABLE_ID,
     transcription_service=TranscriptionService(

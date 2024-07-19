@@ -1,5 +1,31 @@
-import json
+from langchain_groq import ChatGroq
+from pydantic import BaseModel
 
-json_data = "{\"fields\": {\"name\": \"Ryan Jay Ortaleza Fernandez \", \"email\": \"sample17283@gamil.com\", \"transcription\": \"the sun dipped below the horizon casting a golden glow over the city as people hurried to finish their d ay in the quiet library students gathered around tables their whispers merging with the rustle of pages and clicking of keyboards the garden was alive with the buzz of bees and the sweet aroma of blooming flowers inviting visitors to linger as the storm cleared a vibrant rainbow arced across the sky promising brighter days and a mom ent of peace the market was bustling with vendors shouting prices shoppers bargaining and a scent of fresh produce filling the air on the crowded train strangers share d a moment of laughter over a childs innocent antics creating a brief mud early morning joggers enjoyed the cool breeze and the empty streets their footsteps echoing i n the quiet of dawn the chef presented the dish with pride its colors vibrant and inviting promising a feast for both eyes and palate in the workshop the sound of tool s and the smell of wood shavings told stories of craftsmanship and dedication the old bookstores smelled of musty pages and history each book a portal to another time and place waiting to be explored\", \"given_transcription\": \"the sun dipped below the horizon casting a golden glow over the city as people hurried to finish their d ay in the quiet library students gathered around tables their whispers merging with the rustle of pages and clicking of keyboards the garden was alive with the buzz of bees and the sweet aroma of blooming flowers inviting visitors to linger as the storm cleared a vibrant rainbow arched across the sky promising brighter days and a mo ment of peace the market was bustling with vendors shouting prices shoppers bargaining and the scent of fresh produce filling the air on the crowded train strangers sh ared a moment of laughter over a childs innocent antics creating a brief bond early morning joggers enjoyed the cool breeze and the empty streets their footsteps echoi ng in the quiet of dawn the chef presented the dish with pride its colors vibrant and inviting promising a feast for both eyes and palate in the workshop the sound of tools and the smell of wood shavings told stories of craftsmanship and dedication the old bookstore smelled of musty pages and history each book a portal to another ti me and place waiting to be explored\", \"script_id\": \"script-0002\", \"evaluation\": \"The speaker transcription matches the given script with no notable mispronunci ations. The two texts are identical, suggesting that the speaker accurately conveyed the given script without any significant deviations or errors. Therefore, I would evaluate this transcription as accurate and reliable.\\n\\nEvaluation: Accurate and Reliable\", \"audio\": [{\"file_token\": \"JC8Cb6BrIo11NGxliXRuZhGKsze\"}], \"pronunciation\": 5, \"fluency\": 5, \"similarity_score\": 4.964943032427695, \"pacing_score\": 5.0, \"wpm_category\": 5, \"words_per_minute\": 142.55906793868272, \"audio_d uration_seconds\": 82.913, \"avg_pause_duration\": 0.598060606060606, \"processing_duration\": 15.96789026260376, \"parent_record_id\": \"recuiLKIbhhO43\", \"version\" : \"1.0.2\", \"environment\": \"DEVELOPMENT\"}}"
+class QuoteTranslationResult(BaseModel):
+    analytical_thinking: int
+    originality: int
+    language: int
+    organization: int
+    support: int
+    focus_point: int
+    evaluation: str
 
-print(json.dumps(json.loads(json_data), indent=4))
+model = ChatGroq(model_name='llama3-70b-8192', api_key='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', temperature=0)
+
+structured_llm = model.with_structured_output(QuoteTranslationResult)
+
+response = structured_llm.invoke("""
+You are an AI Evaluator that compare applicant transcription to the hidden meaning of quotes. I only need you to return the score based on the criteria I set below and return only json format without any explanatory answer {"analytical_thinking": `score`, "originality": `score`, "language": `score`, "organization": `score`, "support": `score`, "focus_point": `score`, "evaluation": `evaluation is text not quantized`}:
+Criterias:
+- Analytical Thinking (1-5) = Critically examine, evaluate, and interpret information, ideas, or concepts demonstrated in the work you submit.
+- Originality (0-5) = Grade the extent to which the content or ideas presented in the work demonstrate creativity, novelty, or uniqueness, reflecting independent thought or expression.
+- Language (0-5) = Check the overall quality and effectiveness of the written or verbal communication, including factors such as grammar, vocabulary, sentence structure, clarity, and appropriate language usage
+- Organization (0-5) = Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
+- Support (0-5) = Examine the provision of evidence, examples, or relevant information to back up and strengthen the main points or arguments made in your work.
+- Focus Point (0-5) = Assess the central or main idea of the work that is consistently maintained and developed throughout, ensuring that the content remains relevant and on-topic.
+
+transcription: {Minsan, kailangan mong lumingon sa nakaraan para maintindihan ang mga bagay na naghihintay sa hinaharap.}
+quote: {Sometimes, you have to look back in order to understand the things that lie ahead.}
+""")
+
+print(response)

@@ -64,37 +64,6 @@ def calculate_applicant_score(
     )
 
 
-async def update_number_of_retries(
-    ctx: AppContext,
-    table_id: str,
-    record_id: str,
-    no_of_retries: int
-):
-    try:
-        await ctx.base_manager.update_record_async(
-            table_id=table_id,
-            record_id=record_id,
-            fields={
-                "no_of_retries": no_of_retries + 1
-            }
-        )
-    except Exception as err:
-        ctx.logger.error('update record retry failure: %s', err)
-
-async def mark_current_record_as_done(ctx: AppContext, table_id: str, record_id: str):
-    """mark current record as done when the worker is done at processing it"""
-    try:
-        await ctx.base_manager.update_record_async(
-            table_id=table_id,
-            record_id=record_id,
-            fields={
-                "status": "done"
-            }
-        )
-    except Exception as err:
-        raise Exception(f"Error: message=%s, status= updating record failed: %s", err, record_id)
-
-
 async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
     ctx.logger.info('script reading evaluation...')
     process_start = time.time()
@@ -182,8 +151,7 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
             fields=sr_payload
         )
 
-        await mark_current_record_as_done(
-            ctx=ctx,
+        await ctx.applicant_submitted_record_service.done_processing(
             table_id=ctx.sr_unprocessed_table_id,
             record_id=fields.record_id
         )
@@ -213,18 +181,15 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
         ctx.logger.error("applicant name: %s, message: audio is less than 30 secs", fields.name)
 
     except TranscriptionFailed as err:
-        await update_number_of_retries(
-            ctx=ctx,
+        await ctx.applicant_submitted_record_service.update_number_of_retries(
             table_id=ctx.sr_unprocessed_table_id,
             record_id=fields.record_id,
             no_of_retries=fields.no_of_retries
         )
-
         ctx.logger.error("transcription failure: %s", err)
 
     except EvaluationFailureError as err:
-        await update_number_of_retries(
-            ctx=ctx,
+        await ctx.applicant_submitted_record_service.update_number_of_retries(
             table_id=ctx.sr_unprocessed_table_id,
             record_id=fields.record_id,
             no_of_retries=fields.no_of_retries
@@ -232,8 +197,7 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
         ctx.logger.error("evaluation failure: %s", err)
 
     except requests.exceptions.RequestException as err:
-        await update_number_of_retries(
-            ctx=ctx,
+        await ctx.applicant_submitted_record_service.update_number_of_retries(
             table_id=ctx.sr_unprocessed_table_id,
             record_id=fields.record_id,
             no_of_retries=fields.no_of_retries
@@ -241,10 +205,8 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
         ctx.logger.error("request exception: %s", err)
 
     except Exception as err:
-        print(f"❗ General error: {err}")
         ctx.logger.error(err)
-        await update_number_of_retries(
-            ctx=ctx,
+        await ctx.applicant_submitted_record_service.update_number_of_retries(
             table_id=ctx.sr_unprocessed_table_id,
             record_id=fields.record_id,
             no_of_retries=fields.no_of_retries

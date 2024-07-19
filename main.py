@@ -6,7 +6,7 @@ from src.tasks.script_reading_process_callback import script_reading_process_cb
 
 async def main(ctx: AppContext, worker: Worker):
     should_exit = False
-    # sync queue
+
     await worker.sync()
 
     ctx.logger.info('queue count: %s', ctx.task_queue.remaining())

@@ -3,7 +3,8 @@ import os
 from typing import List
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
-from src.services import TranscriptionService, ScriptExtractorService, VoiceAnalyzerService, LlamaService
+from src.services import TranscriptionService, ScriptExtractorService, VoiceAnalyzerService, LlamaService, \
+    ApplicantSubmittedRecordService
 from dataclasses import dataclass
 
 
@@ -20,6 +21,7 @@ class AppContext:
         lark_queue: LarkQueue,
         logger: logging.Logger,
         task_queue: TaskQueue,
+        applicant_submitted_record_service: ApplicantSubmittedRecordService,
         sr_unprocessed_table_id: str = os.getenv('BUBBLE_TABLE_ID'),
         sr_processed_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
         server_task: List[str] = os.getenv('SERVER_TASK'),
@@ -36,6 +38,7 @@ class AppContext:
         self.server_task = server_task
         self.lark_queue: LarkQueue = lark_queue
         self.task_queue: TaskQueue = task_queue
+        self.applicant_submitted_record_service: ApplicantSubmittedRecordService = applicant_submitted_record_service
         self.sr_unprocessed_table_id: str = sr_unprocessed_table_id
         self.sr_processed_table_id: str = sr_processed_table_id
         self.version: str = version

@@ -5,3 +5,4 @@ from .LlamaService import LlamaService
 from .ScriptExtractorService import ScriptExtractorService
 from .OllamaService import OllamaService
 from .DeepgramTranscriptionService import DeepgramTranscriptionService
+from .ApplicantSubmittedRecordService import ApplicantSubmittedRecordService
