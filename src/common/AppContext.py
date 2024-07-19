@@ -1,11 +1,15 @@
 import logging
 import os
 from typing import List
+
+from src.common.Constants import Constants
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
 from src.services import TranscriptionService, ScriptExtractorService, VoiceAnalyzerService, LlamaService, \
     ApplicantSubmittedRecordService
 from dataclasses import dataclass
+
+from src.stores import Stores
 
 
 @dataclass
@@ -22,13 +26,14 @@ class AppContext:
         logger: logging.Logger,
         task_queue: TaskQueue,
         applicant_submitted_record_service: ApplicantSubmittedRecordService,
-        sr_unprocessed_table_id: str = os.getenv('BUBBLE_TABLE_ID'),
-        sr_processed_table_id: str = os.getenv('SCRIPT_READING_TABLE_ID'),
+        constants: Constants,
+        stores: Stores,
         server_task: List[str] = os.getenv('SERVER_TASK'),
         version: str = os.getenv('VERSION'),
         environment: str = os.getenv('ENV')
     ):
         self.base_manager: BitableManager = base_manager
+        self.constants: Constants = constants
         self.file_manager: FileManager = file_manager
         self.transcription_service: TranscriptionService = transcription_service
         self.script_extractor_service: ScriptExtractorService = script_extractor_service
@@ -38,20 +43,7 @@ class AppContext:
         self.server_task = server_task
         self.lark_queue: LarkQueue = lark_queue
         self.task_queue: TaskQueue = task_queue
+        self.stores: Stores = stores
         self.applicant_submitted_record_service: ApplicantSubmittedRecordService = applicant_submitted_record_service
-        self.sr_unprocessed_table_id: str = sr_unprocessed_table_id
-        self.sr_processed_table_id: str = sr_processed_table_id
         self.version: str = version
         self.environment: str = environment
-    
-    def __str__(self):
-        return f"""
-    base_manager: {self.base_manager}, 
-    file_manager: {self.file_manager}, 
-    transcription_service: {self.transcription_service}, 
-    script_extractor_service: {self.script_extractor_service},
-    voice_analyzer_service: {self.voice_analyzer_service},
-    llama_service: {self.llama_service},
-    version: {self.version},
-    environment: {self.environment}
-    """

@@ -3,10 +3,11 @@ import logging
 import sys
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
-from src.common import AppContext, LarkQueue, TaskQueue
+from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
 from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService
+from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore
 
 load_dotenv('.env')
 
@@ -60,8 +61,25 @@ file_manager = FileManager(
     bitable_token=BITABLE_TOKEN
 )
 
+stores = Stores(
+    applicant_sr_evaluation_store=ApplicantScriptReadingEvaluationStore(
+        table_id=SCRIPT_READING_TABLE_ID,
+        base_manager=base_manager
+    ),
+    bubble_data_store=BubbleDataStore(
+        table_id=BUBBLE_TABLE_ID,
+        base_manager=base_manager
+    )
+)
+
+constants = Constants(
+    UNPROCESSED_TABLE_ID=BUBBLE_TABLE_ID,
+    SR_PROCESSED_TABLE_ID=SCRIPT_READING_TABLE_ID
+)
+
 ctx = AppContext(
     base_manager=base_manager,
+    constants=constants,
     file_manager=file_manager,
     llama_service=LlamaService(
         client=OllamaService()
@@ -81,8 +99,7 @@ ctx = AppContext(
     applicant_submitted_record_service=ApplicantSubmittedRecordService(
         base_manager=base_manager
     ),
-    sr_unprocessed_table_id=BUBBLE_TABLE_ID,
-    sr_processed_table_id=SCRIPT_READING_TABLE_ID,
+    stores=stores,
     transcription_service=TranscriptionService(
         client=DeepgramTranscriptionService(token=DEEPGRAM_TOKEN)
     ),

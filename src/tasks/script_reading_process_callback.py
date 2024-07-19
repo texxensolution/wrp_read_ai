@@ -7,6 +7,8 @@ from src.common import AppContext, AudioConverter, AudioProcessor, TextPreproces
     FeatureExtractor
 from src.common.utilities import download_mp3, delete_file
 from uuid import uuid4
+
+from src.enums import BubbleRecordStatus
 from src.exceptions import FileUploadError, EvaluationFailureError, AudioIncompleteError
 from speech_recognition.exceptions import TranscriptionFailed
 from typing import Dict
@@ -124,7 +126,7 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
 
         process_time = time.time() - process_start
 
-        sr_payload = ScriptReadingResultDTO.transform_to_dict(
+        sr_payload = ScriptReadingResultDTO(
             name=fields.name,
             email=fields.email,
             transcription=transcription,
@@ -146,24 +148,19 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
             environment=ctx.environment.upper()
         )
 
-        await ctx.base_manager.create_record_async(
-            table_id=ctx.sr_processed_table_id,
-            fields=sr_payload
+        await ctx.stores.applicant_sr_evaluation_store.create(sr_payload)
+
+        await ctx.stores.bubble_data_store.update_status(
+            record_id=fields.record_id,
+            status="done"
         )
 
-        await ctx.applicant_submitted_record_service.done_processing(
-            table_id=ctx.sr_unprocessed_table_id,
-            record_id=fields.record_id
-        )
         ctx.logger.debug('done processing: %s, processing_time: %s', fields.name, process_time)
 
     except requests.exceptions.InvalidURL as err:
-        await ctx.base_manager.update_record_async(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.update_status(
             record_id=fields.record_id,
-            fields={
-                "status": "invalid audio url"
-            }
+            status="invalid audio url"
         )
         ctx.logger.error("applicant name: %s, message: %s", fields.name, err)
 
@@ -171,46 +168,40 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
         ctx.logger.error(err)
 
     except AudioIncompleteError as err:
-        await ctx.base_manager.update_record_async(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.update_status(
             record_id=fields.record_id,
-            fields={
-                "status": "audio_less_than_30_secs"
-            }
+            status="audio_less_than_30_secs"
         )
         ctx.logger.error("applicant name: %s, message: audio is less than 30 secs", fields.name)
 
     except TranscriptionFailed as err:
-        await ctx.applicant_submitted_record_service.update_number_of_retries(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.increment_retry(
             record_id=fields.record_id,
-            no_of_retries=fields.no_of_retries
+            count=fields.no_of_retries
         )
         ctx.logger.error("transcription failure: %s", err)
 
     except EvaluationFailureError as err:
-        await ctx.applicant_submitted_record_service.update_number_of_retries(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.increment_retry(
             record_id=fields.record_id,
-            no_of_retries=fields.no_of_retries
+            count=fields.no_of_retries
         )
         ctx.logger.error("evaluation failure: %s", err)
 
     except requests.exceptions.RequestException as err:
-        await ctx.applicant_submitted_record_service.update_number_of_retries(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.increment_retry(
             record_id=fields.record_id,
-            no_of_retries=fields.no_of_retries
+            count=fields.no_of_retries
         )
         ctx.logger.error("request exception: %s", err)
 
     except Exception as err:
         ctx.logger.error(err)
-        await ctx.applicant_submitted_record_service.update_number_of_retries(
-            table_id=ctx.sr_unprocessed_table_id,
+        await ctx.stores.bubble_data_store.increment_retry(
             record_id=fields.record_id,
-            no_of_retries=fields.no_of_retries
+            count=fields.no_of_retries
         )
+
     finally:
         if generated_filename and os.path.exists(generated_filename):
             delete_file(generated_filename)
