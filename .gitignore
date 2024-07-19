@@ -5,6 +5,7 @@ myenv
 __pycache__/
 *.py[cod]
 **/__pycache__/
-
+**/*.log
 worker_error.log
 worker_info.log
+tester.py
