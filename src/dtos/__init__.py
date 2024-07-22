@@ -2,3 +2,4 @@ from .RequiredFieldsScriptReading import RequiredFieldsScriptReading
 from .ScriptReadingResultDTO import ScriptReadingResultDTO
 from .RecordingRelatedFieldsScore import RecordingRelatedFieldsScore
 from .QuoteTranslationResultDTO import QuoteTranslationResultDTO
+from .PhotoInterpretationResultDTO import PhotoInterpretationResultDTO

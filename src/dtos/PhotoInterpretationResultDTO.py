@@ -2,12 +2,12 @@ from pydantic import BaseModel, field_validator
 from typing import Dict, List
 
 
-class QuoteTranslationResultDTO(BaseModel):
+class PhotoInterpretationResultDTO(BaseModel):
     parent_record_id: str
     name: str
     email: str
     audio: List[Dict[str, str]]
-    quote: str
+    description: str
     evaluation: str
     transcription: str
     analytical_thinking: int

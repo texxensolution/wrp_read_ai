@@ -32,9 +32,11 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
 
         ctx.logger.info('transcribing...')
         transcription = await ctx.transcription_service.transcribe(generated_filename)
+        _, given_transcription, __ = ctx.stores.reference_store.get_record(fields.script_id)
+        print('given', given_transcription)
 
         ctx.logger.info('evaluating...')
-        result = await ctx.quote_translation_service.evaluate(transcription, quote=fields.given_transcription)
+        result = await ctx.quote_translation_service.evaluate(transcription, quote=given_transcription)
 
         file_token = await ctx.file_manager.upload_async(generated_filename)
 
@@ -45,7 +47,7 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
             version=ctx.version,
             transcription=transcription,
             parent_record_id=fields.record_id,
-            quote=fields.given_transcription,
+            quote=given_transcription,
             evaluation=result.evaluation,
             analytical_thinking=result.analytical_thinking,
             originality=result.originality,

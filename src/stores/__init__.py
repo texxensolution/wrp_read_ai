@@ -1,5 +1,6 @@
 from .BubbleDataStore import BubbleDataStore
 from .ApplicantScriptReadingEvaluationStore import ApplicantScriptReadingEvaluationStore
 from .ApplicantQuoteTranslationEvaluationStore import ApplicantQuoteTranslationEvaluationStore
+from .ApplicantPhotoInterpretationEvaluationStore import ApplicantPhotoInterpretationEvaluationStore
 from .ReferenceStore import ReferenceStore
 from .Stores import Stores

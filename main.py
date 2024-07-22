@@ -2,6 +2,7 @@ import asyncio
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
 from config import ctx
+from src.tasks.photo_interpretation_process_callback import photo_interpretation_process_callback
 from src.tasks.quote_translation_process_callback import quote_translation_process_cb
 from src.tasks.script_reading_process_callback import script_reading_process_cb
 
@@ -9,8 +10,6 @@ async def main(ctx: AppContext, worker: Worker):
     should_exit = False
 
     await ctx.stores.reference_store.sync_and_store_df_in_memory()
-
-    row = ctx.stores.reference_store.get_record('recujd8dlUD8cB')
 
     await worker.sync()
 
@@ -30,7 +29,7 @@ async def main(ctx: AppContext, worker: Worker):
                     if assessment_type == AssessmentType.SCRIPT_READING:
                         await script_reading_process_cb(ctx, payload)
                     elif assessment_type == AssessmentType.PHOTO_TRANSLATION:
-                        pass
+                        await photo_interpretation_process_callback(ctx, payload)
                     elif assessment_type == AssessmentType.QUOTE_TRANSLATION:
                         await quote_translation_process_cb(ctx, payload)
             else:

@@ -6,10 +6,11 @@ from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
 from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
-    DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService, QuoteTranslationService
+    DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService, QuoteTranslationService, \
+    PhotoInterpretationService
 from src.services.QuoteTranslationService import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
-    ApplicantQuoteTranslationEvaluationStore, ReferenceStore
+    ApplicantQuoteTranslationEvaluationStore, ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
 
 load_dotenv('.env')
 
@@ -49,6 +50,7 @@ BITABLE_TOKEN = os.getenv('BITABLE_TOKEN')
 BUBBLE_TABLE_ID = os.getenv('BUBBLE_TABLE_ID')
 SCRIPT_READING_TABLE_ID = os.getenv('SCRIPT_READING_TABLE_ID')
 QUOTE_TRANSLATION_TABLE_ID = os.getenv('QUOTE_TRANSLATION_TABLE_ID')
+PHOTO_INTERPRETATION_TABLE_ID = os.getenv('PHOTO_INTERPRETATION_TABLE_ID')
 VERSION = os.getenv('VERSION')
 environment = os.getenv('ENV')
 SERVER_TASK = os.getenv('SERVER_TASK').split(',')
@@ -73,6 +75,10 @@ stores = Stores(
     ),
     applicant_qt_evaluation_store=ApplicantQuoteTranslationEvaluationStore(
         table_id=QUOTE_TRANSLATION_TABLE_ID,
+        base_manager=base_manager
+    ),
+    applicant_photo_evaluation_store=ApplicantPhotoInterpretationEvaluationStore(
+        table_id=PHOTO_INTERPRETATION_TABLE_ID,
         base_manager=base_manager
     ),
     bubble_data_store=BubbleDataStore(
@@ -115,6 +121,7 @@ ctx = AppContext(
     quote_translation_service=QuoteTranslationService(
         token=GROQ_API_KEY
     ),
+    photo_interpretation_service=PhotoInterpretationService(token=GROQ_API_KEY),
     transcription_service=TranscriptionService(
         client=DeepgramTranscriptionService(token=DEEPGRAM_TOKEN)
     ),
