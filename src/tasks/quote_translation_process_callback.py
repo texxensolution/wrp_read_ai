@@ -1,6 +1,9 @@
 import os
 import time
 from uuid import uuid4
+
+import requests.exceptions
+
 from src.common import AppContext
 from typing import Dict
 from src.common.utilities import get_necessary_fields_from_payload, download_mp3
@@ -61,7 +64,13 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
         await ctx.stores.bubble_data_store.update_status(fields.record_id, "done")
 
         ctx.logger.info("done processing: name = %s, duration = %s", fields.name, processing_time)
+    except requests.exceptions.InvalidURL as err:
+        await ctx.stores.bubble_data_store.update_status(record_id=fields.record_id, status="invalid audio url")
     except Exception as err:
+        await ctx.stores.bubble_data_store.increment_retry(
+            record_id=fields.record_id,
+            count=fields.no_of_retries
+        )
         ctx.logger.error('general error: %s', err)
 
 

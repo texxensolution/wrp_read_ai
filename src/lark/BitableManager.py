@@ -247,8 +247,6 @@ class BitableManager:
         if os.path.exists(filename):
             os.makedirs(filename)
 
-        print(response.file_name)
-
         f = open(filename, "wb")
         f.write(response.file.read())
         f.close()

@@ -8,6 +8,10 @@ from src.tasks.script_reading_process_callback import script_reading_process_cb
 async def main(ctx: AppContext, worker: Worker):
     should_exit = False
 
+    await ctx.stores.reference_store.sync_and_store_df_in_memory()
+
+    row = ctx.stores.reference_store.get_record('recujd8dlUD8cB')
+
     await worker.sync()
 
     ctx.logger.info('queue count: %s', ctx.task_queue.remaining())
@@ -20,7 +24,7 @@ async def main(ctx: AppContext, worker: Worker):
                 payload = task.payload
                 assessment_type = task.type
 
-                print(ctx.server_task)
+                print('Server tasks:', ctx.server_task)
 
                 if assessment_type in ctx.server_task:
                     if assessment_type == AssessmentType.SCRIPT_READING:

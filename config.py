@@ -9,7 +9,7 @@ from src.services import LlamaService, OllamaService, ScriptExtractorService, Tr
     DeepgramTranscriptionService, VoiceAnalyzerService, ApplicantSubmittedRecordService, QuoteTranslationService
 from src.services.QuoteTranslationService import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
-    ApplicantQuoteTranslationEvaluationStore
+    ApplicantQuoteTranslationEvaluationStore, ReferenceStore
 
 load_dotenv('.env')
 
@@ -54,6 +54,7 @@ environment = os.getenv('ENV')
 SERVER_TASK = os.getenv('SERVER_TASK').split(',')
 DEEPGRAM_TOKEN = os.getenv('DEEPGRAM_TOKEN')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+REFERENCE_TABLE_ID = os.getenv('REFERENCE_TABLE_ID')
 
 base_manager = BitableManager(
     lark_client=lark_client,
@@ -78,11 +79,17 @@ stores = Stores(
         table_id=BUBBLE_TABLE_ID,
         base_manager=base_manager
     ),
+    reference_store=ReferenceStore(
+        table_id=REFERENCE_TABLE_ID,
+        base_manager=base_manager,
+        logger=logging.getLogger()
+    )
 )
 
 constants = Constants(
     UNPROCESSED_TABLE_ID=BUBBLE_TABLE_ID,
-    SR_PROCESSED_TABLE_ID=SCRIPT_READING_TABLE_ID
+    SR_PROCESSED_TABLE_ID=SCRIPT_READING_TABLE_ID,
+    REFERENCE_TABLE_ID=REFERENCE_TABLE_ID
 )
 
 ctx = AppContext(
