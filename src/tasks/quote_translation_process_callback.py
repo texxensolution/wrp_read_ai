@@ -6,7 +6,7 @@ import requests.exceptions
 
 from src.common import AppContext
 from typing import Dict
-from src.common.utilities import get_necessary_fields_from_payload, download_mp3
+from src.common.utilities import get_necessary_fields_from_payload, download_mp3, delete_file
 from src.dtos import QuoteTranslationResultDTO
 
 
@@ -73,5 +73,8 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
             count=fields.no_of_retries
         )
         ctx.logger.error('general error: %s', err)
+    finally:
+        ctx.logger.info('deleting mp3...')
+        delete_file(generated_filename)
 
 

@@ -2,7 +2,7 @@ import os
 import time
 from uuid import uuid4
 import requests
-from src.common.utilities import get_necessary_fields_from_payload, download_mp3
+from src.common.utilities import get_necessary_fields_from_payload, download_mp3, delete_file
 from typing import Dict
 from src.common import AppContext
 from src.dtos import PhotoInterpretationResultDTO
@@ -72,4 +72,7 @@ async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[s
             count=fields.no_of_retries
         )
         ctx.logger.error('general error: %s', err)
+    finally:
+        ctx.logger.info('deleting mp3...')
+        delete_file(generated_filename)
 
