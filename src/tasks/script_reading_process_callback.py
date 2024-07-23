@@ -85,7 +85,6 @@ async def script_reading_process_cb(ctx: AppContext, payload: Dict[str, str]):
 
         evaluation = await ctx.llama_service.chat(
             f"""
-                Instruction:
                 Language: English
                 Evaluate the transcription based on the criteria below and give a brief description of how you evaluated the criteria.
                 Criteria:

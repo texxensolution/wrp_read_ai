@@ -19,24 +19,54 @@ class QuoteTranslationService:
         self.client = ChatGroq(
             model_name=model,
             api_key=token,
-            temperature=0,
-            max_retries=2
+            temperature=1,
+            max_retries=3
         )
         self.structured_llm = self.client.with_structured_output(QuoteTranslationResult)
 
     async def evaluate(self, transcription: str, quote: str) -> QuoteTranslationResult:
-        prompt = """
-        You are an AI Evaluator that compare applicant transcription to the hidden meaning of quotes. I only need you to return the score based on the criteria I set below and return only json format without any explanatory answer below is the sample format:
-        {{analytical_thinking: `score`, originality: `score`, language: `score`, organization: `score`, support: `score`, focus_point: `score`, evaluation: `explanation`}}
-        Criterias:
-        - Analytical Thinking (1-5) = Critically examine, evaluate, and interpret information, ideas, or concepts demonstrated in the work you submit.
-        - Originality (0-5) = Grade the extent to which the content or ideas presented in the work demonstrate creativity, novelty, or uniqueness, reflecting independent thought or expression.
-        - Language (0-5) = Check the overall quality and effectiveness of the written or verbal communication, including factors such as grammar, vocabulary, sentence structure, clarity, and appropriate language usage
-        - Organization (0-5) = Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
-        - Support (0-5) = Examine the provision of evidence, examples, or relevant information to back up and strengthen the main points or arguments made in your work.
-        - Focus Point (0-5) = Assess the central or main idea of the work that is consistently maintained and developed throughout, ensuring that the content remains relevant and on-topic.
+        prompt = f"""
+            ### Task:
+            You will critically examine, evaluate a **quote** and a person's **interpretation** it can be english or tagalog or it can be both. Your task is to rate or score the person's interpretation based on the several criterias stated below and you will also provide a detailed explanation of your reasoning for each criteria:
+            
+            ### Evaluation Criteria:
 
-        transcription: {}
-        quote: {}
-        """.format(transcription, quote)
+            Analytical Thinking (1-5):
+                - Superficial vs. Deep: Is the interpretation superficial, or does it delve into deeper meanings, implications, and themes?
+                - Underlying Themes: Does the person identify and explore underlying themes or concepts in the quote?
+
+            Originality (1-5):
+                - Unique Perspective: Does the interpretation offer a fresh or unique perspective?
+                - Avoidance of Clichés: Does the interpretation avoid common or clichéd views? 
+
+            Language (1-5):
+                - Clear Explanation: Is the interpretation articulated clearly and logically?
+                - Consistent Argument: Does the interpretation present a consistent and well-structured argument?
+
+            Organization (1-5):
+                - Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
+
+            Support (1-5):
+                - Evidence and Examples: Is the interpretation supported by relevant evidence, examples, or analogies?
+                - Logical Reasoning: Is the reasoning behind the interpretation strong and logical?
+
+            Focus Point (1-5):
+                - Personal Relevance: How well does the person relate the quote to their own experiences or beliefs?
+                - Broader Relevance: Does the interpretation connect the quote to wider societal, cultural, or philosophical contexts?     
+
+            ### Input:
+            **Interpretation**: {transcription}
+            **Quote**: {quote}
+
+            ### Output:
+            ```json{{
+                "analytical_thinking": 0,
+                "originality": 0,
+                "language": 0,
+                "organization": 0,
+                "support": 0,
+                "focus_point": 0,
+                "evaluation": "detailed explanation"
+            }}```
+        """
         return await self.structured_llm.ainvoke(prompt)

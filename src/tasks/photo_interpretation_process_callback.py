@@ -27,11 +27,11 @@ async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[s
 
     try:
         ctx.logger.info('downloading mp3...')
+        download_mp3(fields.audio_url, generated_filename)
 
         ctx.logger.info('transcribing...')
-        transcription = await ctx.transcription_service.transcribe(generated_filename)
+        transcription = await ctx.transcription_service.transcribe(generated_filename, "groq")
         _, description, __ = ctx.stores.reference_store.get_record(fields.script_id)
-        print('given', description)
 
         ctx.logger.info('evaluating...')
         result = await ctx.photo_interpretation_service.evaluate(transcription, description=description)

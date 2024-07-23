@@ -1,7 +1,7 @@
 import asyncio
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
-from config import ctx
+from src.configs import context
 from src.tasks.photo_interpretation_process_callback import photo_interpretation_process_callback
 from src.tasks.quote_translation_process_callback import quote_translation_process_cb
 from src.tasks.script_reading_process_callback import script_reading_process_cb
@@ -40,6 +40,6 @@ async def main(ctx: AppContext, worker: Worker):
             should_exit = True
 
 if __name__ == "__main__":
-    worker = Worker(ctx)
-    asyncio.run(main(ctx, worker))
+    worker = Worker(context)
+    asyncio.run(main(context, worker))
 

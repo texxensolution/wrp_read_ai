@@ -31,9 +31,8 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
         download_mp3(fields.audio_url, generated_filename)
 
         ctx.logger.info('transcribing...')
-        transcription = await ctx.transcription_service.transcribe(generated_filename)
+        transcription = await ctx.transcription_service.transcribe(generated_filename, "groq")
         _, given_transcription, __ = ctx.stores.reference_store.get_record(fields.script_id)
-        print('given', given_transcription)
 
         ctx.logger.info('evaluating...')
         result = await ctx.quote_translation_service.evaluate(transcription, quote=given_transcription)
