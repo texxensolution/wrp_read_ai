@@ -47,7 +47,7 @@ async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str])
             transcription=transcription,
             parent_record_id=fields.record_id,
             quote=given_transcription,
-            evaluation=result.evaluation,
+            evaluation=result.detailed_evaluation_per_criteria,
             analytical_thinking=result.analytical_thinking,
             originality=result.originality,
             language=result.language,
