@@ -1,72 +1,69 @@
+import os
 from langchain_groq import ChatGroq
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
-from pydantic.v1 import BaseModel
-
+from pydantic.v1 import BaseModel, Field
 from src.common import TextPreprocessor
-
+from src.common.utilities import get_prompt, get_prompt_raw
 
 class QuoteTranslationResult(BaseModel):
-    analytical_thinking: int
-    originality: int
-    language: int
-    organization: int
-    support: int
-    focus_point: int
-    evaluation: str
+    analytical_thinking: int = Field(default=0, description="""
+        Critically examine, evaluate, and interpret information, ideas, or concepts demonstrated in the work you submit.
+    """)
+    originality: int = Field(default=0, description="""
+        Grade the extent to which the content or ideas presented in the work demonstrate creativity, novelty, or uniqueness, reflecting independent thought or expression.
+    """)
+    language: int = Field(default=0, description="""
+        Check the overall quality and effectiveness of the written or verbal communication, including factors such as grammar, vocabulary, sentence structure, clarity, and appropriate language usage.
+    """)
+    organization: int = Field(default=0, description="""
+        Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
+    """)
+    support: int = Field(default=0, description="""
+        Examine the provision of evidence, examples, or relevant information to back up and strengthen the main points or arguments made in your work.
+    """)
+    focus_point: int = Field(default=0, description="""
+        Assess the central or main idea of the work that is consistently maintained and developed throughout, ensuring that the content remains relevant and on-topic.
+    """)
+    detailed_evaluation_per_criteria: str = Field(default="Detailed evaluation", description="""
+        Detailed evaluation explanation per criteria or property include emoji for creativity.             
+    """)
 
 class QuoteTranslationService:
     def __init__(self, token: str, model: str = 'llama3-70b-8192'):
         self.client = ChatGroq(
             model_name=model,
             api_key=token,
-            temperature=1,
-            max_retries=3
+            temperature=0.2,
+            max_retries=3,
+            max_tokens=8192,
+            cache=False,
+            verbose=True
         )
-        self.structured_llm = self.client.with_structured_output(QuoteTranslationResult)
+        self.structured_llm = self.client.with_structured_output(QuoteTranslationResult, method='function_calling')
 
     async def evaluate(self, transcription: str, quote: str) -> QuoteTranslationResult:
-        prompt = f"""
-            ### Task:
-            You will critically examine, evaluate a **quote** and a person's **interpretation** it can be english or tagalog or it can be both. Your task is to rate or score the person's interpretation based on the several criterias stated below and you will also provide a detailed explanation of your reasoning for each criteria:
-            
-            ### Evaluation Criteria:
+        parser = PydanticOutputParser(pydantic_object=QuoteTranslationResult)
+        raw_prompt = get_prompt_raw(os.path.join('src', 'prompts', 'quote_translation', 'system.md'))
+        prompt = PromptTemplate(
+            template=raw_prompt,
+            input_variables=["quote", "query"],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
 
-            Analytical Thinking (1-5):
-                - Superficial vs. Deep: Is the interpretation superficial, or does it delve into deeper meanings, implications, and themes?
-                - Underlying Themes: Does the person identify and explore underlying themes or concepts in the quote?
+        # And a query intended to prompt a language model to populate the data structure.
+        prompt_and_model = prompt | self.client
+        output = await prompt_and_model.ainvoke({
+            "quote": quote,
+            "query": transcription
+        })
+        response: QuoteTranslationResult = await parser.ainvoke(output)
+        print(response)
 
-            Originality (1-5):
-                - Unique Perspective: Does the interpretation offer a fresh or unique perspective?
-                - Avoidance of Clichés: Does the interpretation avoid common or clichéd views? 
+        return response
 
-            Language (1-5):
-                - Clear Explanation: Is the interpretation articulated clearly and logically?
-                - Consistent Argument: Does the interpretation present a consistent and well-structured argument?
-
-            Organization (1-5):
-                - Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
-
-            Support (1-5):
-                - Evidence and Examples: Is the interpretation supported by relevant evidence, examples, or analogies?
-                - Logical Reasoning: Is the reasoning behind the interpretation strong and logical?
-
-            Focus Point (1-5):
-                - Personal Relevance: How well does the person relate the quote to their own experiences or beliefs?
-                - Broader Relevance: Does the interpretation connect the quote to wider societal, cultural, or philosophical contexts?     
-
-            ### Input:
-            **Interpretation**: {transcription}
-            **Quote**: {quote}
-
-            ### Output:
-            ```json{{
-                "analytical_thinking": 0,
-                "originality": 0,
-                "language": 0,
-                "organization": 0,
-                "support": 0,
-                "focus_point": 0,
-                "evaluation": "detailed explanation"
-            }}```
-        """
-        return await self.structured_llm.ainvoke(prompt)
+        # system_prompt_path = os.path.join('src', 'prompts', 'quote_translation', 'system.md')
+        # user_prompt_path = os.path.join('src', 'prompts', 'quote_translation', 'user.md')
+        # input = (("system", get_prompt(system_prompt_path, {"{quote}": quote})), ('user', get_prompt(user_prompt_path, {"{content}": transcription})))
+        # return await self.structured_llm.ainvoke(input)

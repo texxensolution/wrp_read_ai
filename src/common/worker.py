@@ -49,13 +49,3 @@ class Worker:
             ]
         )
         self.ctx.task_queue.enqueue_many(transformed_records)
-
-    def calculate_queued_task_display(self, queue_length: int):
-        """return the number of applicant queue"""
-        human_queue_str = ""
-        for i in range(queue_length):
-            if i % 2 == 0:
-                human_queue_str += "🚶‍♂️"
-            else:
-                human_queue_str += "🚶‍♀️"
-        return human_queue_str + " current applicants waiting at the queue: " + str(queue_length)

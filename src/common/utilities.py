@@ -90,3 +90,33 @@ def get_necessary_fields_from_payload(payload: Dict[str, str]):
         script_id=script_id,
         no_of_retries=no_of_retries
     )
+
+def get_prompt(file_path, replacements):
+    """
+    Replace placeholders in a markdown file with specified replacements.
+
+    :param file_path: Path to the markdown file.
+    :param replacements: Dictionary with placeholder keys and replacement values.
+    """
+    # Read the content of the markdown file
+    with open(file_path, 'r') as file:
+        content = file.read()
+
+    # Replace placeholders with corresponding values
+    for placeholder, replacement in replacements.items():
+        content = content.replace(placeholder, replacement)
+
+    return content
+
+def get_prompt_raw(file_path: str):
+    """
+    Replace placeholders in a markdown file with specified replacements.
+
+    :param file_path: Path to the markdown file.
+    :param replacements: Dictionary with placeholder keys and replacement values.
+    """
+    # Read the content of the markdown file
+    with open(file_path, 'r') as file:
+        content = file.read()
+
+    return content
