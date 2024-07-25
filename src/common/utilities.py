@@ -1,14 +1,16 @@
 from typing import Dict
-
+import time
+import logging
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 import os
 from functools import wraps
 from time import sleep
-
 from src.dtos import RequiredFieldsScriptReading
+from contextlib import contextmanager
 
+logger = logging.getLogger()
 
 def retry(retries: int = 3, delay: int = 3):
     def decorator_retry(func):
@@ -33,7 +35,7 @@ def create_session_with_retries(
     method_whitelist=("GET", "POST")
 ):
     session = requests.Session()
-    
+
     retry_strategy = Retry(
         total=total_retries,
         backoff_factor=backoff_factor,
@@ -62,7 +64,7 @@ def download_mp3(url, file_name):
 
 def map_value(value, lowest_value, max_value):
         return (value * max_value) + lowest_value
-    
+
 def delete_file(file_path):
     try:
         os.remove(file_path)
@@ -120,3 +122,14 @@ def get_prompt_raw(file_path: str):
         content = file.read()
 
     return content
+
+
+@contextmanager
+def log_execution_time():
+    start_time = time.time()
+    elapsed_time = 0
+    try:
+        yield lambda: elapsed_time
+    finally:
+        elapsed_time = time.time() - start_time
+        logger.info(f"Execution time: {elapsed_time} seconds")

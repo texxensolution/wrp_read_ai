@@ -6,7 +6,7 @@ class TranscriptionService:
         self.implementations = clients
         self.client = clients[default_client]
         
-    async def transcribe(self, audio_path: str, client: Literal["groq", "deepgram", None] = None):
+    async def transcribe(self, audio_path: str, client: Literal["groq", "deepgram", None] = None) -> str:
         """function interface for transcribing audio"""
         if client:
             return await self.implementations[client].transcribe(audio_path)

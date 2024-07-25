@@ -9,3 +9,4 @@ from .ApplicantSubmittedRecordService import ApplicantSubmittedRecordService
 from .QuoteTranslationService import QuoteTranslationService
 from .PhotoInterpretationService import PhotoInterpretationService
 from .GroqTranscriptionService import GroqTranscriptionService
+from .GroqService import GroqService

@@ -1,29 +1,21 @@
 import os
 import time
 from uuid import uuid4
-import requests
-from src.common.utilities import get_necessary_fields_from_payload, download_mp3, delete_file
-from typing import Dict
+
+import requests.exceptions
+
 from src.common import AppContext
-from src.dtos import PhotoInterpretationResultDTO
+from typing import Dict
+from src.common.utilities import get_necessary_fields_from_payload, download_mp3, delete_file
+from src.dtos import QuoteTranslationResultDTO
 
-
-def make_sure_to_have_necessary_folders():
-    path = os.path.join('storage', 'photo_interpretation')
-
-    if not os.path.exists(path):
-        os.makedirs(path)
-async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[str, str]):
-    ctx.logger.info('photo interpretation evaluating...')
+async def quote_translation_process_cb(ctx: AppContext, payload: Dict[str, str]):
+    ctx.logger.info('quote translation processing...')
     process_start = time.time()
-
-    make_sure_to_have_necessary_folders()
 
     fields = get_necessary_fields_from_payload(payload)
 
-    generated_filename = os.path.join('storage', 'photo_interpretation', f"{fields.email}-{uuid4()}.mp3")
-
-    make_sure_to_have_necessary_folders()
+    generated_filename = os.path.join('storage', 'quote_translation', f"{fields.email}-{uuid4()}.mp3")
 
     try:
         ctx.logger.info('downloading mp3...')
@@ -31,22 +23,22 @@ async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[s
 
         ctx.logger.info('transcribing...')
         transcription = await ctx.transcription_service.transcribe(generated_filename, "groq")
-        _, description, __ = ctx.stores.reference_store.get_record(fields.script_id)
+        _, given_transcription, __ = ctx.stores.reference_store.get_record(fields.script_id)
 
         ctx.logger.info('evaluating...')
-        result = await ctx.photo_interpretation_service.evaluate(transcription, description=description)
+        result = await ctx.quote_translation_service.evaluate(transcription, quote=given_transcription)
 
         file_token = await ctx.file_manager.upload_async(generated_filename)
 
         processing_time = time.time() - process_start
 
-        payload = PhotoInterpretationResultDTO(
+        payload = QuoteTranslationResultDTO(
             environment=ctx.environment.upper(),
             version=ctx.version,
             transcription=transcription,
             parent_record_id=fields.record_id,
-            description=description,
-            evaluation=result.evaluation,
+            quote=given_transcription,
+            evaluation=result.detailed_evaluation_per_criteria,
             analytical_thinking=result.analytical_thinking,
             originality=result.originality,
             language=result.language,
@@ -59,7 +51,7 @@ async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[s
             processing_time=processing_time
         )
 
-        await ctx.stores.applicant_photo_evaluation_store.create(payload)
+        await ctx.stores.applicant_qt_evaluation_store.create(payload)
 
         await ctx.stores.bubble_data_store.update_status(fields.record_id, "done")
 
@@ -75,4 +67,5 @@ async def photo_interpretation_process_callback(ctx: AppContext, payload: Dict[s
     finally:
         ctx.logger.info('deleting mp3...')
         delete_file(generated_filename)
+
 
