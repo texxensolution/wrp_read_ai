@@ -12,11 +12,6 @@ from typing import Dict
 from src.dtos import RecordingRelatedFieldsScore, ScriptReadingResultDTO
 from src.interfaces import CallbackHandler
 
-
-
-
-
-
 class ScriptReadingHandler(CallbackHandler):
     def __init__(self, ctx: AppContext):
         self._ctx = ctx

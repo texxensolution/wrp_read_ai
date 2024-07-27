@@ -24,6 +24,7 @@ class ReferenceStore:
         self.ref: pl.DataFrame = None
 
     async def sync_and_store_df_in_memory(self):
+        """fetch all reference scripts for quote and photo interpretation"""
         records: List[ReferenceItemResponse] = []
         self.logger.info('fetching references from lark...')
 
@@ -32,7 +33,7 @@ class ReferenceStore:
         )
 
         for item in response:
-            id = item.fields.get("id")[0]['text']
+            id = str(item.fields.get("id")[0]['text'])
             content = item.fields.get("content")
             type = item.fields.get("type")
 

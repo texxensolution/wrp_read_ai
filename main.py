@@ -1,28 +1,26 @@
 import asyncio
 import argparse
-from typing import Literal, Dict
+from typing import Dict
 from src.configs import initialize_dependencies
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
 from src.configs import context
-from src.handlers.quote_translation_process_callback import quote_translation_process_cb
-from src.handlers.script_reading_process_callback import ScriptReadingHandler, script_reading_process_cb
 from src.interfaces import CallbackHandler
+from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
 
-def choose_task(server_task: str):
-    if server_task == 'quote':
-        return "Quote Translation"
-    elif server_task == 'photo':
-        return "Photo Translation"
-    else:
-        return "Script Reading"
+Handlers = Dict[str, CallbackHandler]
 
 async def main(
-    server_task: Literal["Script Reading", "Quote Translation", "Photo Translation"],
+    server_task: str,
     ctx: AppContext,
     worker: Worker,
-    handlers: Dict[str, CallbackHandler]
+    handlers: Handlers
 ):
+    """
+        Entry point:
+        1. This will setup all necessary dependencies and fetch all references from lark base
+        2. This will create an infinite loop that will poll and process assessment dynamically based on their assessment types
+    """
     should_exit = False
 
     await ctx.stores.reference_store.sync_and_store_df_in_memory()
@@ -55,13 +53,23 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    server_task = choose_task(args.server_task)
+    task_map = {
+        "sr": AssessmentType.SCRIPT_READING,
+        "quote": AssessmentType.QUOTE_TRANSLATION,
+        "photo": AssessmentType.PHOTO_TRANSLATION
+    }
+
+    # map shortcut name to its real name
+    server_task = task_map[args.server_task]
+
     print("Server task:", server_task)
 
     initialize_dependencies()
 
-    handlers = {
-        AssessmentType.SCRIPT_READING: ScriptReadingHandler(context)
+    # map handlers for all supported assessments
+    handlers: Handlers = {
+        AssessmentType.SCRIPT_READING: ScriptReadingHandler(context),
+        AssessmentType.QUOTE_TRANSLATION: QuoteTranslationHandler(context)
     }
 
     worker = Worker(context, server_task)

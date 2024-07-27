@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from src.common import AppContext
 from typing import Dict
 
 class CallbackHandler(ABC):
