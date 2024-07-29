@@ -44,16 +44,15 @@ class ScriptReadingHandler(CallbackHandler):
 
     async def handle(self, payload: Dict[str, str]):
         with log_execution_time() as get_elapsed_time:
-            process_start = time.time()
-            self._ctx.logger.info('script reading evaluation...')
-
-            fields = get_necessary_fields_from_payload(payload)
-
-            given_transcription = self._ctx.stores.reference_store.get_script(fields.script_id)
-
-            generated_filename = os.path.join('storage', 'script_reading', f"{fields.email}.{uuid4()}.mp3")
-
             try:
+                process_start = time.time()
+                self._ctx.logger.info('script reading evaluation...')
+
+                fields = get_necessary_fields_from_payload(payload)
+
+                given_transcription = self._ctx.stores.reference_store.get_script(fields.script_id)
+
+                generated_filename = os.path.join('storage', 'script_reading', f"{fields.email}.{uuid4()}.mp3")
                 self._ctx.logger.info('downloading audio url from %s', fields.audio_url)
                 download_mp3(fields.audio_url, generated_filename)
 
