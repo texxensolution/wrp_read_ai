@@ -9,6 +9,7 @@ class ReferenceItemResponse(BaseModel):
     id: str
     content: str
     type: str
+    script_id: str
 
 
 class ReferenceStore:
@@ -36,11 +37,13 @@ class ReferenceStore:
             id = str(item.fields.get("id")[0]['text'])
             content = item.fields.get("content")
             type = item.fields.get("type")
+            script_id = item.fields.get("script_id")
 
             item = ReferenceItemResponse(
                 id=id,
                 content=content,
-                type=type
+                type=type,
+                script_id=script_id
             )
 
             records.append(item)
@@ -51,17 +54,19 @@ class ReferenceStore:
             self,
             records: List[ReferenceItemResponse],
     ):
-        ids, contents, types = [], [], []
+        ids, contents, types, script_ids = [], [], [], []
 
         for record in records:
             ids.append(record.id)
             contents.append(record.content)
             types.append(record.type)
+            script_ids.append(record.script_id)
 
         df = pl.DataFrame({
             "id": ids,
             "content": contents,
-            "type": types
+            "type": types,
+            "script_id": script_ids
         })
 
         self.ref = df
@@ -78,3 +83,12 @@ class ReferenceStore:
         _type = row['type'][0]
 
         return _id, content, _type
+
+    def get_script(self, script_id: str):
+        row = self.ref.filter(
+            pl.col("script_id") == script_id
+        ).head(1)
+
+        row = row.select(["content"])
+
+        return row['content'][0]
