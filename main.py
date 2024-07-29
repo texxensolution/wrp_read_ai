@@ -1,22 +1,26 @@
 import asyncio
 import argparse
+from typing import Dict
+from src.configs import initialize_dependencies
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
 from src.configs import context
-from src.tasks.photo_interpretation_process_callback import photo_interpretation_process_callback
-from src.tasks.quote_translation_process_callback import quote_translation_process_cb
-from src.tasks.script_reading_process_callback import script_reading_process_cb
+from src.interfaces import CallbackHandler
+from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
 
+Handlers = Dict[str, CallbackHandler]
 
-def choose_task(server_task: str) -> str:
-    if server_task == 'sr':
-        return "Script Reading"
-    elif server_task == 'quote':
-        return "Quote Translation"
-    elif server_task == 'photo':
-        return "Photo Translation"
-    
-async def main(server_task: str, ctx: AppContext, worker: Worker):
+async def main(
+    server_task: str,
+    ctx: AppContext,
+    worker: Worker,
+    handlers: Handlers
+):
+    """
+        Entry point:
+        1. This will setup all necessary dependencies and fetch all references from lark base
+        2. This will create an infinite loop that will poll and process assessment dynamically based on their assessment types
+    """
     should_exit = False
 
     await ctx.stores.reference_store.sync_and_store_df_in_memory()
@@ -34,12 +38,8 @@ async def main(server_task: str, ctx: AppContext, worker: Worker):
                 assessment_type = task.type
 
                 if assessment_type == server_task:
-                    if assessment_type == AssessmentType.SCRIPT_READING:
-                        await script_reading_process_cb(ctx, payload)
-                    elif assessment_type == AssessmentType.PHOTO_TRANSLATION:
-                        await photo_interpretation_process_callback(ctx, payload)
-                    elif assessment_type == AssessmentType.QUOTE_TRANSLATION:
-                        await quote_translation_process_cb(ctx, payload)
+                    await handlers[assessment_type].handle(payload)
+
             else:
                 await worker.sync()
                 await asyncio.sleep(3)
@@ -50,13 +50,27 @@ async def main(server_task: str, ctx: AppContext, worker: Worker):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='ReadAI Background processor')
     parser.add_argument('--server-task', type=str, default='sr', choices=['sr', 'quote', 'photo'], help='Choose which task to run')
-    
+
     args = parser.parse_args()
 
-    server_task = choose_task(args.server_task)
+    task_map = {
+        "sr": AssessmentType.SCRIPT_READING,
+        "quote": AssessmentType.QUOTE_TRANSLATION,
+    }
+
+    # map shortcut name to its real name
+    server_task = task_map[args.server_task]
+
     print("Server task:", server_task)
 
-    worker = Worker(context)
+    initialize_dependencies()
 
-    asyncio.run(main(server_task, context, worker))
+    # map handlers for all supported assessments
+    handlers: Handlers = {
+        AssessmentType.SCRIPT_READING: ScriptReadingHandler(context),
+        AssessmentType.QUOTE_TRANSLATION: QuoteTranslationHandler(context)
+    }
 
+    worker = Worker(context, server_task)
+
+    asyncio.run(main(server_task, context, worker, handlers))

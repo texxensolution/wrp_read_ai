@@ -10,8 +10,9 @@ from src.common import (DataTransformer,
 class Worker:
     """Worker is responsible for processing applicant submission"""
 
-    def __init__(self, _ctx: AppContext):
-        self.ctx = _ctx
+    def __init__(self, ctx: AppContext, server_task: str):
+        self._ctx = ctx
+        self.server_task = server_task
 
     def create_storage_folders(self):
         """Create storage folder when running worker.py"""
@@ -27,9 +28,9 @@ class Worker:
         # Format the date and time
         formatted_time = now.strftime("%A at %I:%M %p")
 
-        self.ctx.logger.info('🔄 syncing from lark at %s', formatted_time)
+        self._ctx.logger.info('🔄 syncing from lark at %s', formatted_time)
 
-        records = await self.ctx.lark_queue.get_items()
+        records = await self._ctx.lark_queue.get_items(self.server_task)
 
         if len(records) == 0:
             return
@@ -48,4 +49,4 @@ class Worker:
                 "no_of_retries"
             ]
         )
-        self.ctx.task_queue.enqueue_many(transformed_records)
+        self._ctx.task_queue.enqueue_many(transformed_records)

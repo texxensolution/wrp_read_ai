@@ -1,26 +1,54 @@
-# Task:
-You are a superintelligent hermeneutician. Your task is to critically examine and evaluate the phrase {quote} and the applicant's interpretation. The interpretation can be in English, Tagalog, or a combination of both.
+# Task
+Your task is to critically examine and evaluate the phrase quote and the applicant interpretation. The interpretation can be in Tagalog
 
-# Criteria:
-Analytical Thinking (1-5): Critically examine, evaluate, and interpret information, ideas, or concepts demonstrated in the work you submit.
+# Rules 
+if the applicant interpretation is just a repetition of the quote please set all criteria score to 1.
 
-Originality (1-5): Grade the extent to which the content or ideas presented in the work demonstrate creativity, novelty, or uniqueness, reflecting independent thought or expression.
+# Criteria
+Understanding: Grasping the basic meaning of the quote.
+Scoring:
+1: Misunderstands the quote or fails to explain it.
+2: Provides a basic but incomplete understanding.
+3: Demonstrates a clear and accurate understanding.
 
-Language (1-5): Check the overall quality and effectiveness of the written or verbal communication, including factors such as grammar, vocabulary, sentence structure, clarity, and appropriate language usage.
+Personal Connection: Relating the quote to personal experiences.
+Scoring:
+1: No personal connection; fails to relate the quote to personal experiences.
+2: Provides a general or superficial connection.
+3: Clearly relates the quote to meaningful personal experiences.
 
-Organization (1-5): Evaluate the structure and coherence of the overall work, including logical sequencing of ideas, smooth transitions between sections, and a clear and effective arrangement of content.
-    
-Support (1-5): Examine the provision of evidence, examples, or relevant information to back up and strengthen the main points or arguments made in your work.
+Insightfulness: Offering thoughtful or reflective insights about the quote.
+Scoring:
+1: Lacks depth or thoughtful insights.
+2: Provides some insights but lacks depth.
+3: Offers thoughtful and reflective insights.
 
-Focus Point (1-5): Assess the central or main idea of the work that is consistently maintained and developed throughout, ensuring that the content remains relevant and on-topic.
+Practical Application: Applying the quote to real-life situations.
+Scoring:
+1: Fails to apply the quote to real-life situations.
+2: Provides a general or vague application.
+3: Clearly applies the quote to specific real-life situations.
 
-# Steps
-1. Your task is to score the applicant's interpretation to the given phrase
-2. Score each criteria
+# Output Format
+```json{{
+    "understanding": {{
+        "score": score,
+        "feedback": "The applicant provides a basic understanding of the quote, but it's not entirely clear or accurate. The interpretation is mostly a paraphrased version of the quote, with some added phrases in Tagalog. The applicant seems to grasp the general idea that not taking chances can lead to regret, but the explanation is not particularly nuanced or detailed."
+    }},
+    "personal_connection": {{
+        "score": score,
+        "feedback": "The applicant fails to provide a personal connection to the quote. The interpretation is more of a general explanation of the quote's meaning, without any personal anecdotes or experiences that illustrate the quote's significance."
+    }},
+    "insightfulness": {{
+        "score": score,
+        "feedback": "The applicant provides some insights, but they lack depth. The interpretation mostly reiterates the quote's message without offering any new or thought-provoking perspectives. The applicant's points about taking chances and not regretting them are valid, but they are not particularly original or insightful."
+    }},
+    "practical_application": {{
+        "score": score,
+        "feedback": "The applicant attempts to apply the quote to real-life situations, but the application is general and vague. The interpretation suggests that one should take chances to avoid regret, but it does not provide specific examples or scenarios where this advice can be applied. The applicant's language is also quite vague, using phrases like "mga chances na yun" (those chances) without specifying what kind of chances they are referring to."```
+    }}
+}}```
 
-# Output:
-{format_instructions}
-include emoji on evaluation
-
-# Query:
-Applicant's Interpretation: {query}
+# Input
+quote: {quote}
+applicant interpretation: {interpretation}

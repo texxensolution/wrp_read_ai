@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
-from src.services import LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
+from src.services import GroqService, LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, QuoteTranslationService, \
     PhotoInterpretationService
 from src.services.QuoteTranslationService import QuoteTranslationService
@@ -119,7 +119,7 @@ context = AppContext(
     constants=constants,
     file_manager=file_manager,
     llama_service=LlamaService(
-        client=OllamaService()
+        client=GroqService(token=config.GROQ_API_KEY)
     ),
     lark_queue=LarkQueue(
         base_manager=base_manager,

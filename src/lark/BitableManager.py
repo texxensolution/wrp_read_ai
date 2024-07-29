@@ -174,7 +174,7 @@ class BitableManager:
         lark.logger.info(lark.JSON.marshal(response.data, indent=4))
         return response
     
-    async def update_record_async(self, table_id: str, record_id: str, fields):
+    async def update_record_async(self, table_id: str, record_id: str, fields: Dict[str, Any]):
         request: UpdateAppTableRecordRequest = UpdateAppTableRecordRequest.builder() \
             .app_token(self.BITABLE_TOKEN) \
             .table_id(table_id or self.BITABLE_ID) \
