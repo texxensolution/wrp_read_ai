@@ -5,8 +5,8 @@ from typing import List
 from src.common.Constants import Constants
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
-from src.services import TranscriptionService, ScriptExtractorService, VoiceAnalyzerService, LlamaService, \
-    ApplicantSubmittedRecordService, QuoteTranslationService, PhotoInterpretationService
+from src.services import TranscriptionService, VoiceAnalyzerService, LlamaService, \
+    QuoteTranslationService, PhotoInterpretationService
 from dataclasses import dataclass
 
 from src.stores import Stores
@@ -19,7 +19,6 @@ class AppContext:
         base_manager: BitableManager,
         file_manager: FileManager,
         transcription_service: TranscriptionService,
-        script_extractor_service: ScriptExtractorService,
         voice_analyzer_service: VoiceAnalyzerService,
         llama_service: LlamaService,
         lark_queue: LarkQueue,
@@ -37,7 +36,6 @@ class AppContext:
         self.constants: Constants = constants
         self.file_manager: FileManager = file_manager
         self.transcription_service: TranscriptionService = transcription_service
-        self.script_extractor_service: ScriptExtractorService = script_extractor_service
         self.voice_analyzer_service: VoiceAnalyzerService = voice_analyzer_service
         self.llama_service: LlamaService = llama_service
         self.logger = logger
