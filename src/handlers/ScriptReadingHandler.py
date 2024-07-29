@@ -49,7 +49,7 @@ class ScriptReadingHandler(CallbackHandler):
 
             fields = get_necessary_fields_from_payload(payload)
 
-            given_transcription = self._ctx.script_extractor_service.get_script(fields.script_id)
+            given_transcription = self._ctx.stores.reference_store.get_script(fields.script_id)
 
             generated_filename = os.path.join('storage', 'script_reading', f"{fields.email}.{uuid4()}")
 
