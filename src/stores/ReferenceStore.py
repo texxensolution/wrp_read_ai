@@ -87,22 +87,25 @@ class ReferenceStore:
         return _id, content, _type
 
     def get_script(self, script_id: str):
-        row = self.ref.filter(
-            pl.col("type") == "script_reading"
-        )
-        
-        script_map = {
-            "script-0002": "recujSQayzK5p8",
-            "script-0003": "recujSQizVmWfI",
-            "script-0004": "recujSQmKhJaoA",
-            "script-0005": "recujSQpyJIUCl",
-            "script-0006": "recujSQt8eGHJt",
-        }
+        try:
+            row = self.ref.filter(
+                pl.col("type") == "script_reading"
+            )
+            
+            script_map = {
+                "script-0002": "recujSQayzK5p8",
+                "script-0003": "recujSQizVmWfI",
+                "script-0004": "recujSQmKhJaoA",
+                "script-0005": "recujSQpyJIUCl",
+                "script-0006": "recujSQt8eGHJt",
+            }
 
-        row = row.filter(
-            pl.col("id") == script_map[script_id] 
-        )
+            row = row.filter(
+                pl.col("id") == script_map[script_id] 
+            )
 
-        row = row.select(["id", "content", "type", "script_id"])
+            row = row.select(["id", "content", "type", "script_id"])
 
-        return row['content'][0]
+            return row['content'][0]
+        except KeyError:
+            raise KeyError(f"script-id: {script_id} does not exists!")
