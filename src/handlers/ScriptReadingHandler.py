@@ -51,7 +51,7 @@ class ScriptReadingHandler(CallbackHandler):
 
             given_transcription = self._ctx.stores.reference_store.get_script(fields.script_id)
 
-            generated_filename = os.path.join('storage', 'script_reading', f"{fields.email}.{uuid4()}")
+            generated_filename = os.path.join('storage', 'script_reading', f"{fields.email}.{uuid4()}.mp3")
 
             try:
                 self._ctx.logger.info('downloading audio url from %s', fields.audio_url)
