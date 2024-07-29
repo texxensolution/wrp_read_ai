@@ -1,0 +1,14 @@
+[Unit]
+Description=Read AI Background Worker Runner
+After=network.target
+
+[Service]
+User=ecs-user
+WorkingDirectory=%h/github/wrp_read_ai
+ExecStart=/home/ecs-user/github/wrp_read_ai/myenv/bin/python /home/ecs-user/github/wrp_read_ai/main.py --server-task=sr
+Restart=always
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

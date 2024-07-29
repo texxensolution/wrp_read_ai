@@ -5,7 +5,7 @@ script_reading_dir="$project_dir/storage/script_reading"
 quote_translation_dir="$project_dir/storage/quote_translation"
 photo_interpretation_dir="$project_dir/storage/photo_interpretation"
 myenv_dir="$project_dir/myenv"
-service_name="readai_worker.service"
+service_name="sr_worker.service"
 
 cd "$project_dir"
 
@@ -69,12 +69,12 @@ fi
 if systemctl list-units --type=service --all | grep -q "$service_name"; then
     if systemctl is-active --quiet "$service_name"; then
         echo "stopping existing readai_worker service unit..."
-        systemctl --user stop readai_worker.service
+        systemctl --user stop sr_worker.service
     fi
 
     echo "overwriting readai_worker.service..."
-    sudo cp $project_dir/scripts/readai_worker.service $HOME/.config/systemd/user/
+    sudo cp $project_dir/scripts/sr_worker.service $HOME/.config/systemd/user/
 fi
 
 systemctl --user daemon-reload
-systemctl --user restart readai_worker.service
+systemctl --user restart sr_worker.service
