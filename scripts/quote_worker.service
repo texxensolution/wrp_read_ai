@@ -3,9 +3,9 @@ Description=Read AI Background Worker Runner
 After=network.target
 
 [Service]
-User=%u
+User=ecs-user
 WorkingDirectory=%h/github/wrp_read_ai
-ExecStart=%h/github/wrp_read_ai/myenv/bin/python %h/github/wrp_read_ai/main.py
+ExecStart=/home/ecs-user/github/wrp_read_ai/myenv/bin/python /home/ecs-user/github/wrp_read_ai/main.py --server-task=sr
 Restart=always
 StandardOutput=journal
 StandardError=journal
