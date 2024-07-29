@@ -2,7 +2,6 @@ from .ReadingEvaluationService import ReadingEvaluationService
 from .TranscriptionService import TranscriptionService
 from .VoiceAnalyzerService import VoiceAnalyzerService
 from .LlamaService import LlamaService
-from .ScriptExtractorService import ScriptExtractorService
 from .OllamaService import OllamaService
 from .DeepgramTranscriptionService import DeepgramTranscriptionService
 from .ApplicantSubmittedRecordService import ApplicantSubmittedRecordService

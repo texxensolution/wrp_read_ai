@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
-from src.services import GroqService, LlamaService, OllamaService, ScriptExtractorService, TranscriptionService, \
+from src.services import GroqService, LlamaService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, QuoteTranslationService, \
     PhotoInterpretationService
 from src.services.QuoteTranslationService import QuoteTranslationService
@@ -129,7 +129,6 @@ context = AppContext(
     ),
     logger=logging.getLogger(),
     task_queue=TaskQueue(),
-    script_extractor_service=ScriptExtractorService(version=config.VERSION),
     server_task=config.SERVER_TASK,
     environment=config.ENVIRONMENT,
     version=config.VERSION,

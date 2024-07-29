@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 import polars as pl
 from pydantic import BaseModel
 from src.lark import BitableManager
@@ -9,7 +9,7 @@ class ReferenceItemResponse(BaseModel):
     id: str
     content: str
     type: str
-    script_id: str
+    script_id: Optional[str]
 
 
 class ReferenceStore:
@@ -74,7 +74,9 @@ class ReferenceStore:
         self.logger.info('done storing in memory...')
 
     def get_record(self, _id: str):
-        row = self.ref.filter(pl.col("id") == _id).head(1)
+        row = self.ref.filter(
+            pl.col("id") == _id
+        ).head(1)
 
         row = row.select(['id', 'content', 'type'])
 
@@ -86,9 +88,21 @@ class ReferenceStore:
 
     def get_script(self, script_id: str):
         row = self.ref.filter(
-            pl.col("script_id") == script_id
-        ).head(1)
+            pl.col("type") == "script_reading"
+        )
+        
+        script_map = {
+            "script-0002": "recujSQayzK5p8",
+            "script-0003": "recujSQizVmWfI",
+            "script-0004": "recujSQmKhJaoA",
+            "script-0005": "recujSQpyJIUCl",
+            "script-0006": "recujSQt8eGHJt",
+        }
 
-        row = row.select(["content"])
+        row = row.filter(
+            pl.col("id") == script_map[script_id] 
+        )
+
+        row = row.select(["id", "content", "type", "script_id"])
 
         return row['content'][0]
