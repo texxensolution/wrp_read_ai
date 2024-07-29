@@ -14,7 +14,7 @@ class BubbleDataStore:
     async def update_status(
         self,
         record_id: str,
-        status: Literal["done", "failed", "file deleted", "invalid audio url", "audio_less_than_30_secs"]
+        status: Literal["done", "failed", "file deleted", "invalid audio url", "audio_less_than_30_secs", "script error"]
     ):
         try:
             await self.base_manager.update_record_async(

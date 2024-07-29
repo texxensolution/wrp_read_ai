@@ -169,6 +169,10 @@ class ScriptReadingHandler(CallbackHandler):
                     count=fields.no_of_retries
                 )
                 self._ctx.logger.error("request exception: %s", err)
+            
+            except KeyError as err:
+                await self._ctx.stores.bubble_data_store.update_status(fields.record_id, "script error")
+                self._ctx.logger.error("error: %s", err)
 
             except Exception as err:
                 self._ctx.logger.error(err)
