@@ -17,7 +17,7 @@ src - this contains the source code for the readai background processor
    • enums - this provide all enums that the project used
    • exception - this contains custom exceptions
    • interfaces - this contains all the contracts or interfaces
-   • lark - this is a small library I write for interacting with Lark Base
+   • lark - this is a small library I wrote for interacting with Lark Base
    • prompts - this contains the llm prompts
    • services - this contains the service wrapper for different apis
    • stores - this handle data persistent

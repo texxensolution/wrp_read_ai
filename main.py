@@ -56,7 +56,6 @@ if __name__ == "__main__":
     task_map = {
         "sr": AssessmentType.SCRIPT_READING,
         "quote": AssessmentType.QUOTE_TRANSLATION,
-        "photo": AssessmentType.PHOTO_TRANSLATION
     }
 
     # map shortcut name to its real name
