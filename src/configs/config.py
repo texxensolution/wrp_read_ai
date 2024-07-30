@@ -98,7 +98,8 @@ stores = Stores(
     reference_store=ReferenceStore(
         table_id=config.REFERENCE_TABLE_ID,
         base_manager=base_manager,
-        logger=logging.getLogger()
+        logger=logging.getLogger(),
+        version=config.VERSION
     )
 )
 
