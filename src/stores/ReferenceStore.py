@@ -10,6 +10,7 @@ class ReferenceItemResponse(BaseModel):
     content: str
     type: str
     script_id: Optional[str]
+    version: str
 
 
 class ReferenceStore:
@@ -17,12 +18,14 @@ class ReferenceStore:
             self,
             table_id: str,
             base_manager: BitableManager,
-            logger: logging.Logger
+            logger: logging.Logger,
+            version: str
     ):
         self.table_id = table_id
         self.base_manager = base_manager
         self.logger = logger
         self.ref: pl.DataFrame = None
+        self.version = version
 
     async def sync_and_store_df_in_memory(self):
         """fetch all reference scripts for quote and photo interpretation"""
@@ -38,12 +41,14 @@ class ReferenceStore:
             content = item.fields.get("content")
             type = item.fields.get("type")
             script_id = item.fields.get("script_id")
+            version = item.fields.get("version")
 
             item = ReferenceItemResponse(
                 id=id,
                 content=content,
                 type=type,
-                script_id=script_id
+                script_id=script_id,
+                version=version
             )
 
             records.append(item)
@@ -54,19 +59,21 @@ class ReferenceStore:
             self,
             records: List[ReferenceItemResponse],
     ):
-        ids, contents, types, script_ids = [], [], [], []
+        ids, contents, types, script_ids, versions = [], [], [], [], []
 
         for record in records:
             ids.append(record.id)
             contents.append(record.content)
             types.append(record.type)
             script_ids.append(record.script_id)
+            versions.append(record.version)
 
         df = pl.DataFrame({
             "id": ids,
             "content": contents,
             "type": types,
-            "script_id": script_ids
+            "script_id": script_ids,
+            "version": versions
         })
 
         self.ref = df
@@ -85,27 +92,18 @@ class ReferenceStore:
         _type = row['type'][0]
 
         return _id, content, _type
-
+    
     def get_script(self, script_id: str):
         try:
-            row = self.ref.filter(
-                pl.col("type") == "script_reading"
-            )
-            
-            script_map = {
-                "script-0002": "recujSQayzK5p8",
-                "script-0003": "recujSQizVmWfI",
-                "script-0004": "recujSQmKhJaoA",
-                "script-0005": "recujSQpyJIUCl",
-                "script-0006": "recujSQt8eGHJt",
-            }
-
-            row = row.filter(
-                pl.col("id") == script_map[script_id] 
+            filtered_row = self.ref.filter(
+                (pl.col("version") == self.version) & (pl.col("type") == "script_reading") & (pl.col("script_id") == script_id)
             )
 
-            row = row.select(["id", "content", "type", "script_id"])
+            print(filtered_row)
 
-            return row['content'][0]
+            filtered_row = filtered_row.select(['id', 'content', 'type', 'script_id'])
+
+            return filtered_row['content'][0]
         except KeyError:
             raise KeyError(f"script-id: {script_id} does not exists!")
+        
