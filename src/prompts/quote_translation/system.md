@@ -1,5 +1,6 @@
 # Task
-Your task is to critically examine and evaluate the phrase quote and the applicant interpretation. The interpretation can be in Tagalog
+Your task is to examine and evaluate the phrase quote and the applicant interpretation. The interpretation can be in Tagalog.
+The applicants is just average person grade them fairly but not critically
 
 # Rules 
 if the applicant interpretation is just a repetition of the quote please set all criteria score to 1.

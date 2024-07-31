@@ -18,16 +18,7 @@ class QuoteTranslationResult(BaseModel):
     practical_application: CriterionFeedback
     
     def get_feedback(self):
-        return f"""
-            Feedback
-            Understanding: {self.understanding.feedback} 
-            
-            Personal Connection: {self.personal_connection.feedback}
-
-            Insightfulness: {self.insightfulness.feedback}
-
-            Practical Application: {self.practical_application.feedback}
-        """
+        return f"""Feedback \nUnderstanding: {self.understanding.feedback} \nPersonal Connection: {self.personal_connection.feedback} \nInsightfulness: {self.insightfulness.feedback} \nPractical Application: {self.practical_application.feedback}""".strip()
         
 
 class QuoteTranslationService:
@@ -35,7 +26,7 @@ class QuoteTranslationService:
         self.client = ChatGroq(
             model_name=model,
             api_key=token,
-            temperature=0,
+            temperature=0.2,
             max_retries=3,
             max_tokens=8192,
             cache=False,
