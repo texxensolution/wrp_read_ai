@@ -16,7 +16,7 @@ from src.services import GroqTranscriptionService
 from typing import Dict
 from src.interfaces import ITranscriber
 
-load_dotenv('.env')
+load_dotenv('.env', override=True)
 
 info_log_file = os.path.join("logs", "worker_info.log")
 error_log_file = os.path.join("logs", "worker_error.log")

@@ -99,8 +99,6 @@ class ReferenceStore:
                 (pl.col("version") == self.version) & (pl.col("type") == "script_reading") & (pl.col("script_id") == script_id)
             )
 
-            print(filtered_row)
-
             filtered_row = filtered_row.select(['id', 'content', 'type', 'script_id'])
 
             return filtered_row['content'][0]

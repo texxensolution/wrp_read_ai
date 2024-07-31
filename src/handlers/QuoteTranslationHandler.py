@@ -31,9 +31,6 @@ class QuoteTranslationHandler(CallbackHandler):
             self._ctx.logger.info('evaluating...')
             result = await self._ctx.quote_translation_service.evaluate(transcription, quote=given_transcription)
 
-            print(result)
-
-
             file_token = await self._ctx.file_manager.upload_async(generated_filename)
 
             processing_time = time.time() - process_start

@@ -13,6 +13,7 @@ class LarkQueue:
     async def get_items(self, server_task: str) -> List[AppTableRecord]:
         # query = f"AND(AND(AND(OR(CurrentValue.[status] = \"\", CurrentValue.[status] = \"failed\"), CurrentValue.[no_of_retries] <= 3), CurrentValue.[version] = \"{self.version}\"), CurrentValue.[environment] = \"{self.environment.upper()}\")"
         query = f"AND(AND(AND(CurrentValue.[version] = \"{self.version}\", CurrentValue.[environment] = \"{self.environment.upper()}\"), AND(CurrentValue.[status] = \"\", CurrentValue.[no_of_retries] <= 3)), CurrentValue.[assessment_type] = \"{server_task}\")"
+        print(query)
         records = await self.base_manager.async_get_records(
             table_id=self.bitable_table_id,
             filter=query

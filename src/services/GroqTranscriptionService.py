@@ -12,6 +12,7 @@ class GroqTranscriptionService(ITranscriber):
         transcription = await self.client.audio.transcriptions.create(
             file=(audio_path, file.read()),
             model="whisper-large-v3",
+            language="tl"
         )
 
         return transcription.text
