@@ -68,6 +68,5 @@ class QuoteTranslationHandler(CallbackHandler):
         finally:
             self._ctx.logger.info('deleting mp3...')
             delete_file(generated_filename)
-            self._ctx.logger.info("delaying for 3 secs...")
 
 

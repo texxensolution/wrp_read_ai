@@ -184,4 +184,3 @@ class ScriptReadingHandler(CallbackHandler):
                 if generated_filename and os.path.exists(generated_filename):
                     delete_file(generated_filename)
                 self._ctx.logger.info("delaying for 3 secs...")
-                time.sleep(3)
