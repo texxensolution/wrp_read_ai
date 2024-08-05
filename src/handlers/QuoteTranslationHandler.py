@@ -18,7 +18,7 @@ class QuoteTranslationHandler(CallbackHandler):
 
         fields = get_necessary_fields_from_payload(payload)
 
-        generated_filename = os.path.join('storage', 'quote_translation', f"{fields.email}-{uuid4()}.mp3")
+        generated_filename = os.path.join('storage', 'quote_translation', f"{fields.user_id}-{uuid4()}.mp3")
 
         try:
             self._ctx.logger.info('downloading mp3...')
