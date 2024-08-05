@@ -1,3 +1,3 @@
-from .ITranscriber import ITranscriber
+from .i_transcriber import ITranscriber
 from .ILLM import ILLM
-from .CallbackHandler import CallbackHandler
+from .callback_handler import CallbackHandler
