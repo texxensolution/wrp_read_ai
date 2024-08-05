@@ -1,8 +1,6 @@
 from langchain_groq import ChatGroq
 from pydantic.v1 import BaseModel
 
-from src.common import TextPreprocessor
-
 
 class PhotoInterpretationResult(BaseModel):
     analytical_thinking: int

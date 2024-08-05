@@ -4,7 +4,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from pydantic import BaseModel
 from pydantic.v1 import BaseModel, Field
-from src.common import TextPreprocessor
 from src.common.utilities import get_prompt, get_prompt_raw
 
 class CriterionFeedback(BaseModel):

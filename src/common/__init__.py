@@ -5,10 +5,11 @@ from .task import Task
 from .utilities import retry, download_mp3, map_value, delete_file, get_necessary_fields_from_payload, get_prompt, get_prompt_raw, log_execution_time
 from .data_transformer import DataTransformer
 from .lark_queue import LarkQueue
-from .text_preprocessor import TextPreprocessor
 from .transcription_processor import TranscriptionProcessor
 from .audio_processor import AudioProcessor
 from .logger import Logger
 from .app_context import AppContext
 from .worker import Worker
 from .constants import Constants
+from .text_preprocessor import TextPreprocessor
+from .text_processor import get_total_word_correct

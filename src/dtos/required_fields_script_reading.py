@@ -1,6 +1,5 @@
 from pydantic import BaseModel, field_validator
 
-
 class RequiredFieldsScriptReading(BaseModel):
     user_id: str
     name: str

@@ -1,6 +1,6 @@
 import Levenshtein
-from .TextPreprocessor import TextPreprocessor
 from .utilities import map_value
+from .text_preprocessor import TextPreprocessor
 import math
 
 class TranscriptionProcessor:

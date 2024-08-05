@@ -18,6 +18,8 @@ class ScriptReadingResultDTO(BaseModel):
     pacing_score: float
     wpm_category: int
     words_per_minute: float
+    correct_word_count: int
+    total_word_count: int
     audio_duration_seconds: float
     avg_pause_duration: float
     processing_duration: float

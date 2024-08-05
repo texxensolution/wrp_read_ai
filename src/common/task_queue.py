@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from queue import Queue
 from typing import List, Dict, Any
-from .Task import Task
+from .task import Task
 from datetime import datetime, timedelta
 
 @dataclass

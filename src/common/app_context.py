@@ -2,7 +2,7 @@ import logging
 import os
 from typing import List
 
-from src.common.Constants import Constants
+from src.common.constants import Constants
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
 from src.services import TranscriptionService, VoiceAnalyzerService, LlamaService, \

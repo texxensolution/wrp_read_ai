@@ -1,2 +1,2 @@
-from .ScriptReadingHandler import ScriptReadingHandler
-from .QuoteTranslationHandler import QuoteTranslationHandler
+from .quote_translation_handler import QuoteTranslationHandler
+from .script_reading_handler import ScriptReadingHandler
