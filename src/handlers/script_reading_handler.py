@@ -3,7 +3,7 @@ import librosa
 import requests
 import os
 from src.common import AppContext, AudioProcessor, TextPreprocessor, TranscriptionProcessor, \
-    FeatureExtractor
+FeatureExtractor, get_total_word_correct
 from src.common.utilities import download_mp3, delete_file, get_necessary_fields_from_payload, log_execution_time
 from uuid import uuid4
 from src.exceptions import FileUploadError, EvaluationFailureError, AudioIncompleteError
@@ -73,6 +73,10 @@ class ScriptReadingHandler(CallbackHandler):
                 transcription = await self._ctx.transcription_service.transcribe(generated_filename)
                 transcription = TextPreprocessor.normalize(transcription)
 
+                # get total correct word count and base word count
+                correct_word_count, base_words_count = get_total_word_correct(given_transcription, transcription)
+
+
                 self._ctx.logger.info('calculating similarity score...')
 
                 partial_fields_score = self.calculate_applicant_score(
@@ -117,6 +121,8 @@ class ScriptReadingHandler(CallbackHandler):
                     parent_record_id=fields.record_id,
                     audio_duration_seconds=recording_duration,
                     words_per_minute=partial_fields_score.words_per_minute,
+                    correct_word_count=correct_word_count,
+                    total_word_count=base_words_count,
                     processing_duration=process_time,
                     avg_pause_duration=partial_fields_score.avg_pause_duration,
                     version=self._ctx.version.upper(),

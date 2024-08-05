@@ -1,3 +1,3 @@
-from .AudioIncompleteError import AudioIncompleteError
-from .EvaluationFailureError import EvaluationFailureError
-from .FileUploadError import FileUploadError
+from .audio_incomplete_error import AudioIncompleteError
+from .evaluation_failure_error import EvaluationFailureError
+from .file_upload_error import FileUploadError

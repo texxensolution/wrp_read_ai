@@ -1,8 +1,8 @@
 import os
 from src.interfaces import ITranscriber
-from .TranscriptionService import TranscriptionService
-from .VoiceAnalyzerService import VoiceAnalyzerService
-from .LlamaService import LlamaService
+from .transcription_service import TranscriptionService
+from .voice_analyzer_service import VoiceAnalyzerService
+from .llama_service import LlamaService
 from src.lark import BitableManager, FileManager
 
 class ReadingEvaluationService:

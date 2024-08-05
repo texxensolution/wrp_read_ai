@@ -8,10 +8,10 @@ from src.lark import BitableManager, FileManager, Lark
 from src.services import GroqService, LlamaService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, QuoteTranslationService, \
     PhotoInterpretationService
-from src.services.QuoteTranslationService import QuoteTranslationService
+from src.services.quote_translation_service import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
     ApplicantQuoteTranslationEvaluationStore, ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
-from .Configuration import Configuration
+from .configuration import Configuration
 from src.services import GroqTranscriptionService
 from typing import Dict
 from src.interfaces import ITranscriber
