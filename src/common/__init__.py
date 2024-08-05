@@ -7,7 +7,7 @@ from .data_transformer import DataTransformer
 from .lark_queue import LarkQueue
 from .transcription_processor import TranscriptionProcessor
 from .audio_processor import AudioProcessor
-from .logger import Logger
+from ._logger import Logger
 from .app_context import AppContext
 from .worker import Worker
 from ._constants import Constants
