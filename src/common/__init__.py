@@ -1,7 +1,7 @@
 from .feature_extractor import FeatureExtractor
 from .audio_converter import AudioConverter
 from .task_queue import TaskQueue
-from .task import Task
+from ._task import Task
 from .utilities import retry, download_mp3, map_value, delete_file, get_necessary_fields_from_payload, get_prompt, get_prompt_raw, log_execution_time
 from .data_transformer import DataTransformer
 from .lark_queue import LarkQueue
@@ -10,6 +10,7 @@ from .audio_processor import AudioProcessor
 from .logger import Logger
 from .app_context import AppContext
 from .worker import Worker
-from .constants import Constants
+from ._constants import Constants
 from .text_preprocessor import TextPreprocessor
 from .text_processor import get_total_word_correct
+# update
