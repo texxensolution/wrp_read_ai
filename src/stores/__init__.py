@@ -3,4 +3,5 @@ from .applicant_script_reading_evaluation_store import ApplicantScriptReadingEva
 from .applicant_quote_translation_evaluation_store import ApplicantQuoteTranslationEvaluationStore
 from .applicant_photo_interpretation_evaluation_store import ApplicantPhotoInterpretationEvaluationStore
 from .reference_store import ReferenceStore
-from .stores import Stores
+from ._stores import Stores
+# update
