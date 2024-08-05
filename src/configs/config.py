@@ -11,11 +11,11 @@ from src.services import GroqService, LlamaService, TranscriptionService, \
 from src.services.quote_translation_service import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
     ApplicantQuoteTranslationEvaluationStore, ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
-from .configuration import Configuration
+from ._configuration import Configuration
 from src.services import GroqTranscriptionService
 from typing import Dict
 from src.interfaces import ITranscriber
-
+# updated
 load_dotenv('.env', override=True)
 
 info_log_file = os.path.join("logs", "worker_info.log")
