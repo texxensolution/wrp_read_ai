@@ -18,7 +18,6 @@ class QuoteTranslationResultDTO(BaseModel):
     personal_connection: int
     insightfulness: int
     practical_application: int
-    no_of_retries: int = 0
 
     @field_validator('audio', mode="before")
     def format_audio(cls, v: AudioFieldType):
