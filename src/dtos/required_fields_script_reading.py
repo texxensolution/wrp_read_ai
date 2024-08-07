@@ -8,6 +8,7 @@ class RequiredFieldsScriptReading(BaseModel):
     given_transcription: str
     audio_url: str
     script_id: str
+    no_of_retries: int
 
     @field_validator('no_of_retries', mode="before")
     def format_no_of_retries(cls, v):
