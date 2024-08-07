@@ -4,7 +4,6 @@ from src.enums import BubbleRecordStatus
 from src.lark import BitableManager
 
 
-
 class BubbleDataStore:
 
     def __init__(self, table_id: str, base_manager: BitableManager):
@@ -38,4 +37,15 @@ class BubbleDataStore:
             )
         except Exception as err:
             raise Exception("BubbleDataStore failed to increment retry:", err)
+    
+    async def get_unprocessed_items(self, filter):
+        try:
+            response = await self.base_manager.async_get_records(
+                self.table_id,
+                filter=filter
+            )
+            return response
+        except Exception as err:
+            raise Exception("BubbleDataStore failed to get items: ", err)
+            
 
