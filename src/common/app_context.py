@@ -6,7 +6,7 @@ from src.common._constants import Constants
 from src.lark import Lark, BitableManager, FileManager
 from src.common import LarkQueue, TaskQueue
 from src.services import TranscriptionService, VoiceAnalyzerService, LlamaService, \
-    QuoteTranslationService, PhotoInterpretationService
+    QuoteTranslationService, PhotoInterpretationService, BubbleHTTPClientService
 from dataclasses import dataclass
 
 from src.stores import Stores
@@ -27,8 +27,10 @@ class AppContext:
         constants: Constants,
         stores: Stores,
         quote_translation_service: QuoteTranslationService,
+        bubble_http_client_service: BubbleHTTPClientService,
         photo_interpretation_service: PhotoInterpretationService,
         server_task: List[str] = os.getenv('SERVER_TASK'),
+
         version: str = os.getenv('VERSION'),
         environment: str = os.getenv('ENV')
     ):
@@ -42,6 +44,7 @@ class AppContext:
         self.server_task = server_task
         self.lark_queue: LarkQueue = lark_queue
         self.task_queue: TaskQueue = task_queue
+        self.bubble_http_client_service: BubbleHTTPClientService = bubble_http_client_service
         self.quote_translation_service: QuoteTranslationService = quote_translation_service
         self.photo_interpretation_service: PhotoInterpretationService = photo_interpretation_service
         self.stores: Stores = stores

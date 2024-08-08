@@ -7,6 +7,8 @@ from src.common import AppContext, Worker
 from src.configs import context
 from src.interfaces import CallbackHandler
 from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
+from src.configs.config import Base, engine
+from src.configs.models import Notification
 
 Handlers = Dict[str, CallbackHandler]
 
@@ -49,6 +51,7 @@ async def main(
             should_exit = True
 
 if __name__ == "__main__":
+    Base.metadata.create_all(bind=engine)
     parser = argparse.ArgumentParser(description='ReadAI Background processor')
     parser.add_argument('--server-task', type=str, default='sr', choices=['sr', 'quote', 'photo'], help='Choose which task to run')
 

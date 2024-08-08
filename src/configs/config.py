@@ -1,13 +1,14 @@
 import os
 import logging
 import sys
+import json
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
 from src.lark import BitableManager, FileManager, Lark
 from src.services import GroqService, LlamaService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, QuoteTranslationService, \
-    PhotoInterpretationService
+    PhotoInterpretationService, BubbleHTTPClientService
 from src.services.quote_translation_service import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
     ApplicantQuoteTranslationEvaluationStore, ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
@@ -15,8 +16,21 @@ from ._configuration import Configuration
 from src.services import GroqTranscriptionService
 from typing import Dict
 from src.interfaces import ITranscriber
-# updated
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, Text, String
+from typing import Any
+
 load_dotenv('.env', override=True)
+
+# initialize sqlalchemy
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 info_log_file = os.path.join("logs", "worker_info.log")
 error_log_file = os.path.join("logs", "worker_error.log")
@@ -49,6 +63,7 @@ config = Configuration(
     BITABLE_TOKEN=os.getenv('BITABLE_TOKEN'),
     BUBBLE_TABLE_ID=os.getenv('BUBBLE_TABLE_ID'),
     SCRIPT_READING_TABLE_ID=os.getenv('SCRIPT_READING_TABLE_ID'),
+    BUBBLE_BEARER_TOKEN=os.getenv("BUBBLE_BEARER_TOKEN"),
     QUOTE_TRANSLATION_TABLE_ID=os.getenv('QUOTE_TRANSLATION_TABLE_ID'),
     PHOTO_INTERPRETATION_TABLE_ID=os.getenv('PHOTO_INTERPRETATION_TABLE_ID'),
     VERSION=os.getenv('VERSION'),
@@ -137,6 +152,9 @@ context = AppContext(
     quote_translation_service=QuoteTranslationService(
         token=config.GROQ_API_KEY
     ),
+    bubble_http_client_service=BubbleHTTPClientService(
+        config.BUBBLE_BEARER_TOKEN
+    )
     photo_interpretation_service=PhotoInterpretationService(token=config.GROQ_API_KEY),
     transcription_service=TranscriptionService(
         clients=transcriptions_clients
