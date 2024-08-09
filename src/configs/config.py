@@ -5,10 +5,10 @@ import json
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from src.common import AppContext, LarkQueue, TaskQueue, Constants
-from src.lark import BitableManager, FileManager, Lark
+from src.lark import BitableManager, FileManager, Lark, LarkMessenger
 from src.services import GroqService, LlamaService, TranscriptionService, \
     DeepgramTranscriptionService, VoiceAnalyzerService, QuoteTranslationService, \
-    PhotoInterpretationService, BubbleHTTPClientService
+    PhotoInterpretationService, BubbleHTTPClientService, ScriptReadingService
 from src.services.quote_translation_service import QuoteTranslationService
 from src.stores import Stores, ApplicantScriptReadingEvaluationStore, BubbleDataStore, \
     ApplicantQuoteTranslationEvaluationStore, ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
@@ -76,11 +76,21 @@ config = Configuration(
     REFERENCE_TABLE_ID=os.getenv('REFERENCE_TABLE_ID'),
     PROCESSED_TABLE_ID=os.getenv('PROCESSED_TABLE_ID'),
     SERVER_TASK=os.getenv('SERVER_TASK').split(','),
+    QUOTE_GROUP_CHAT_ID=os.getenv("QUOTE_GROUP_CHAT_ID"),
+    SR_GROUP_CHAT_ID=os.getenv("SR_GROUP_CHAT_ID"),
+    NOTIFY_APP_ID=os.getenv("NOTIFY_APP_ID"),
+    NOTIFY_APP_SECRET=os.getenv("NOTIFY_APP_SECRET")
 )
 
 lark_client = Lark(
     app_id=config.APP_ID,
-    app_secret=config.APP_SECRET
+    app_secret=config.APP_SECRET,
+    debug=True
+)
+
+notify_lark_client = Lark(
+    app_id=config.NOTIFY_APP_ID,
+    app_secret=config.NOTIFY_APP_SECRET
 )
 
 base_manager = BitableManager(
@@ -129,7 +139,6 @@ transcriptions_clients: Dict[str, ITranscriber] = {
     "deepgram": DeepgramTranscriptionService(token=config.DEEPGRAM_TOKEN)
 }
 
-
 context = AppContext(
     base_manager=base_manager,
     constants=constants,
@@ -143,6 +152,9 @@ context = AppContext(
         environment=config.ENVIRONMENT,
         version=config.VERSION,
     ),
+    lark_messenger=LarkMessenger(
+        lark=notify_lark_client
+    ),
     logger=logging.getLogger(),
     task_queue=TaskQueue(),
     server_task=config.SERVER_TASK,
@@ -152,9 +164,12 @@ context = AppContext(
     quote_translation_service=QuoteTranslationService(
         token=config.GROQ_API_KEY
     ),
+    script_reading_service=ScriptReadingService(
+        token=config.GROQ_API_KEY
+    ),
     bubble_http_client_service=BubbleHTTPClientService(
         config.BUBBLE_BEARER_TOKEN
-    )
+    ),
     photo_interpretation_service=PhotoInterpretationService(token=config.GROQ_API_KEY),
     transcription_service=TranscriptionService(
         clients=transcriptions_clients

@@ -2,6 +2,7 @@ import time
 import librosa
 import requests
 import os
+import json
 from src.common import AppContext, AudioProcessor, TextPreprocessor, TranscriptionProcessor, \
 FeatureExtractor, get_total_word_correct
 from src.common.utilities import download_mp3, delete_file, get_necessary_fields_from_payload, log_execution_time
@@ -11,12 +12,13 @@ from speech_recognition.exceptions import TranscriptionFailed
 from typing import Dict
 from src.dtos import RecordingRelatedFieldsScore, ScriptReadingResultDTO
 from src.interfaces import CallbackHandler
+from src.tools.message_card_template_helper import reading_notification_template_card, ReadingTemplateVariables
 
 class ScriptReadingHandler(CallbackHandler):
     def __init__(self, ctx: AppContext):
         self._ctx = ctx
 
-    def calculate_applicant_score(
+    def aggregate_applicant_score(
         self,
         generated_filename: str,
         transcription: str,
@@ -40,6 +42,17 @@ class ScriptReadingHandler(CallbackHandler):
             similarity_score=similarity_score,
             pacing_score=pacing_score,
             words_per_minute=words_per_minute
+        )
+    
+    def calculate_score(self, partial_fields: RecordingRelatedFieldsScore):
+        return round(
+            (
+                ((partial_fields.pronunciation / 5) * .25) +
+                ((partial_fields.wpm_category) / 5) * .15 +
+                ((partial_fields.similarity_score / 5)) * .20 +
+                ((partial_fields.fluency / 5) * .25) + 
+                ((partial_fields.pacing_score / 5) * .15)
+            ) * 100
         )
 
     async def handle(self, payload: Dict[str, str]):
@@ -76,29 +89,20 @@ class ScriptReadingHandler(CallbackHandler):
                 # get total correct word count and base word count
                 correct_word_count, base_words_count = get_total_word_correct(given_transcription, transcription)
 
-
                 self._ctx.logger.info('calculating similarity score...')
 
-                partial_fields_score = self.calculate_applicant_score(
+                partial_fields_score = self.aggregate_applicant_score(
                     generated_filename,
                     transcription,
                     given_transcription,
                     recording_duration
                 )
 
-                evaluation = await self._ctx.llama_service.chat(
-                    f"""
-                        Language: English
-                        Evaluate the transcription based on the criteria below and give a brief description of how you evaluated the criteria.
-                        Criteria:
-                        Compare the Speaker Transcription and Given Script
-                        Identify mispronunciations between the speaker transcription and given script
-                        If the speaker transcription is empty, return "Invalid"
+                actual_score = self.calculate_score(partial_fields_score)
 
-                        Speaker Transcription: {transcription}
-                        Given Script: {given_transcription}
-                        - Dont show any criteria just the evaluation
-                    """
+                llm_response = await self._ctx.script_reading_service.evaluate(
+                    transcription=transcription,
+                    given_script=given_transcription
                 )
 
                 self._ctx.logger.info('building payload...')
@@ -111,7 +115,7 @@ class ScriptReadingHandler(CallbackHandler):
                     transcription=transcription,
                     given_transcription=given_transcription,
                     script_id=fields.script_id,
-                    evaluation=evaluation,
+                    evaluation=llm_response.evaluation,
                     audio=file_token,
                     fluency=partial_fields_score.fluency,
                     similarity_score=partial_fields_score.similarity_score,
@@ -129,14 +133,52 @@ class ScriptReadingHandler(CallbackHandler):
                     environment=self._ctx.environment.upper()
                 )
 
-                await self._ctx.stores.applicant_sr_evaluation_store.create(sr_payload)
+                lark_stored_response = await self._ctx.stores.applicant_sr_evaluation_store.create(sr_payload)
 
+                # update status on lark base
                 await self._ctx.stores.bubble_data_store.update_status(
                     record_id=fields.record_id,
                     status="done"
                 )
 
-                self._ctx.logger.debug('done processing: %s, processing_time: %s', fields.name, process_time)
+                self._ctx.logger.info("updating score on bubble database...")
+
+                # update applicant data on bubble database
+                response = await self._ctx.bubble_http_client_service.update_reading_score(fields.record_id, actual_score)
+                self._ctx.logger.info("bubble request status: %s", response['status'])
+
+                found_record = await self._ctx.stores.applicant_sr_evaluation_store.find_record(
+                    record_id=lark_stored_response.data.record.record_id
+                )
+
+                found_record_content = json.loads(found_record.raw.content.decode())
+
+                shared_url = found_record_content['data']['record']['record_url']
+
+                # notify the group chat
+                notification_payload = ReadingTemplateVariables(
+                    calculated_score=actual_score,
+                    voice_quality=partial_fields_score.pronunciation,
+                    pacing_score=partial_fields_score.pacing_score,
+                    wpm_category=partial_fields_score.wpm_category,
+                    fluency_score=partial_fields_score.fluency,
+                    accuracy_score=partial_fields_score.similarity_score,
+                    correct_count=correct_word_count,
+                    total_words_count=base_words_count,
+                    name=fields.name,
+                    view_link=shared_url,
+                    given_script=fields.given_transcription,
+                    evaluation=llm_response.evaluation
+                )
+
+                notif_payload = reading_notification_template_card(notification_payload)
+
+                await self._ctx.lark_messenger.send_message_card_to_group_chat(
+                    os.getenv("SR_GROUP_CHAT_ID"),
+                    notif_payload
+                )
+
+                self._ctx.logger.info('done processing: %s, processing_time: %s', fields.name, process_time)
 
             except requests.exceptions.InvalidURL as err:
                 await self._ctx.stores.bubble_data_store.update_status(

@@ -16,6 +16,24 @@ class BitableManager:
     def set_table_id(self, table_id):
         self.BITABLE_ID = table_id
 
+    async def find_record(self, table_id: str, record_id: str, with_shared_url: bool = True):
+        request: GetAppTableRecordRequest = GetAppTableRecordRequest.builder() \
+            .app_token(self.BITABLE_TOKEN) \
+            .table_id(table_id) \
+            .record_id(record_id) \
+            .with_shared_url(True) \
+            .build()
+        
+        response: GetAppTableRecordResponse = await self.lark.bitable.v1.app_table_record.aget(request)
+
+        if not response.success():
+            raise Exception(f"bitable http request error: code={response.code} message={response.msg}")
+        
+        lark.logger.info(lark.JSON.marshal(response.data, indent=4))
+
+        return response
+
+
     async def list_records(self, filter=None, page_token=None, text_field_as_array=False, display_formula_ref=False,
                            page_size=100):
         partial_bitable_request = ListAppTableRecordRequest.builder() \

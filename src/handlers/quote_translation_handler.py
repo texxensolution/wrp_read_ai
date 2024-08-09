@@ -11,6 +11,9 @@ from src.interfaces import CallbackHandler
 class QuoteTranslationHandler(CallbackHandler):
     def __init__(self, _ctx: AppContext):
         self._ctx = _ctx
+    
+    def calculate_score(self, understanding: int, insightfulness: int, personal_application: int, personal_connection: int):
+        return understanding + insightfulness + personal_application + personal_connection
 
     async def handle(self, payload: Dict[str, str]):
         self._ctx.logger.info('quote translation processing...')
@@ -52,9 +55,21 @@ class QuoteTranslationHandler(CallbackHandler):
                 understanding=result.understanding.score
             )
 
+            actual_score = self.calculate_score(
+                understanding=result.understanding.score,
+                insightfulness=result.insightfulness.score,
+                personal_application=result.personal_connection.score,
+                personal_connection=result.personal_connection.score
+            )
+
             await self._ctx.stores.applicant_qt_evaluation_store.create(payload)
 
             await self._ctx.stores.bubble_data_store.update_status(fields.record_id, "done")
+            
+            self._ctx.logger.info("updating applicant score on bubble database...")
+            response = await self._ctx.bubble_http_client_service.update_quote_score(fields.record_id, actual_score)
+
+            self._ctx.logger.info("bubble http request status: %s", response['status'])
 
             self._ctx.logger.info("done processing: name = %s, duration = %s", fields.name, processing_time)
         except requests.exceptions.InvalidURL as err:

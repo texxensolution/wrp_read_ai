@@ -1,7 +1,7 @@
 from .Lark import Lark
 from lark_oapi.api.im.v1 import CreateMessageRequest, CreateMessageResponse, CreateMessageRequestBody
 
-class Messenger:
+class LarkMessenger:
     def __init__(self, lark: Lark) -> None:
         self.client = lark.client
     
@@ -23,5 +23,3 @@ class Messenger:
             raise Exception(f"Error: code={response.code}, message={response.msg}")
 
         return response
-
-        

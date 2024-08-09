@@ -7,17 +7,18 @@ class BubbleHTTPClientService:
         
     async def update_reading_score(self, record_id: str, score: int):
         headers = {
-            "Authorization": f"Bearer {self.bearer_token}"
+            "Authorization": f"Bearer {self.bearer_token}",
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
-        payload = json.dumps({
+        data = {
             "record_id": record_id,
             "scores": score
-        })
+        }
 
         try:
             async with ClientSession() as session:
-                async with session.post("https://jobapplication.madridph.com/api/1.1/wf/update_script", headers=headers, data=payload) as response:
+                async with session.post("https://jobapplication.madridph.com/api/1.1/wf/update_script", headers=headers, data=data) as response:
                     response = await response.json()
                     return response
         except Exception as err:
@@ -26,17 +27,18 @@ class BubbleHTTPClientService:
         
     async def update_quote_score(self, record_id: str, score: int):
         headers={
-            "Authorization": f"Bearer {self.bearer_token}"
+            "Authorization": f"Bearer {self.bearer_token}",
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
-        payload = json.dumps({
+        data = {
             "record_id": record_id,
             "scores": score
-        })
+        }
 
         try:
             async with ClientSession() as session:
-                async with session.post("https://jobapplication.madridph.com/api/1.1/wf/update_quote", headers=headers, data=payload) as response:
+                async with session.post("https://jobapplication.madridph.com/api/1.1/wf/update_quote", headers=headers, data=data) as response:
                     response = await response.json()
                     return response
         except Exception as err:

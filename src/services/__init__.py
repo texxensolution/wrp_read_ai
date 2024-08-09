@@ -10,3 +10,4 @@ from .groq_transcription_service import GroqTranscriptionService
 from .groq_service import GroqService
 from .reading_evaluation_service import ReadingEvaluationService
 from .bubble_http_client_service import BubbleHTTPClientService
+from .script_reading_service import ScriptReadingService
