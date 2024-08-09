@@ -8,6 +8,7 @@ class Configuration(BaseModel):
     APP_SECRET: Union[str, None] = getenv('APP_SECRET')
     BITABLE_TOKEN: Union[str, None] = getenv('BITABLE_TOKEN')
     BUBBLE_TABLE_ID: Union[str, None] = getenv('BUBBLE_TABLE_ID')
+    BUBBLE_BEARER_TOKEN: Union[str, None] = getenv("BUBBLE_BEARER_TOKEN")
     SCRIPT_READING_TABLE_ID: Union[str, None] = getenv('SCRIPT_READING_TABLE_ID')
     QUOTE_TRANSLATION_TABLE_ID: Union[str, None] = getenv('QUOTE_TRANSLATION_TABLE_ID')
     PROCESSED_TABLE_ID: Union[str, None] = getenv('PROCESSED_TABLE_ID')
@@ -19,3 +20,8 @@ class Configuration(BaseModel):
     VERSION: Union[str, None] = getenv('VERSION')
     ENVIRONMENT: Union[str, None] = getenv('ENV')
     SERVER_TASK: list[str] = getenv('SERVER_TASK')
+    QUOTE_GROUP_CHAT_ID: Union[str, None] = getenv("QUOTE_GROUP_CHAT_ID")
+    SR_GROUP_CHAT_ID: Union[str, None] = getenv("SR_GROUP_CHAT_ID")
+    NOTIFY_APP_ID: Union[str, None] = getenv("NOTIFY_APP_ID")
+    NOTIFY_APP_SECRET: Union[str, None] = getenv("NOTIFY_APP_SECRET")
+    
