@@ -1,9 +1,11 @@
 import os
+import json
 import time
 from uuid import uuid4
 import requests.exceptions
 from src.common import AppContext
 from typing import Dict
+from src.tools.message_card_template_helper import QuoteInterpretationVariables, quote_interpretation_template_card
 from src.common.utilities import get_necessary_fields_from_payload, download_mp3, delete_file
 from src.dtos import QuoteTranslationResultDTO
 from src.interfaces import CallbackHandler
@@ -12,8 +14,8 @@ class QuoteTranslationHandler(CallbackHandler):
     def __init__(self, _ctx: AppContext):
         self._ctx = _ctx
     
-    def calculate_score(self, understanding: int, insightfulness: int, personal_application: int, personal_connection: int):
-        return understanding + insightfulness + personal_application + personal_connection
+    def calculate_score(self, understanding: int, insightfulness: int, practical_application: int, personal_connection: int):
+        return understanding + insightfulness + practical_application + personal_connection
 
     async def handle(self, payload: Dict[str, str]):
         self._ctx.logger.info('quote translation processing...')
@@ -58,11 +60,11 @@ class QuoteTranslationHandler(CallbackHandler):
             actual_score = self.calculate_score(
                 understanding=result.understanding.score,
                 insightfulness=result.insightfulness.score,
-                personal_application=result.personal_connection.score,
+                practical_application=result.practical_application.score,
                 personal_connection=result.personal_connection.score
             )
 
-            await self._ctx.stores.applicant_qt_evaluation_store.create(payload)
+            created_record_response = await self._ctx.stores.applicant_qt_evaluation_store.create(payload)
 
             await self._ctx.stores.bubble_data_store.update_status(fields.record_id, "done")
             
@@ -70,6 +72,36 @@ class QuoteTranslationHandler(CallbackHandler):
             response = await self._ctx.bubble_http_client_service.update_quote_score(fields.record_id, actual_score)
 
             self._ctx.logger.info("bubble http request status: %s", response['status'])
+
+            found_record = await self._ctx.stores.applicant_qt_evaluation_store.find_record(
+                created_record_response.data.record.record_id
+            )
+
+            found_record_content = json.loads(found_record.raw.content.decode())
+
+            shared_url = found_record_content['data']['record']['record_url']
+
+            notification_payload = QuoteInterpretationVariables(
+                name=fields.name,
+                interpretation=transcription.strip(),
+                feedback=result.get_feedback().replace("\n", "\\n"),
+                insightfulness=result.insightfulness.score,
+                understanding=result.understanding.score,
+                practical_application=result.practical_application.score,
+                personal_connection=result.personal_connection.score,
+                quote=fields.given_transcription,
+                total_score=actual_score,
+                view_link=shared_url,
+            )
+
+            notification_content = quote_interpretation_template_card(notification_payload)
+
+            print(notification_content)
+
+            await self._ctx.lark_messenger.send_message_card_to_group_chat(
+                group_chat_id=os.getenv("QUOTE_GROUP_CHAT_ID"),
+                content=notification_content
+            )
 
             self._ctx.logger.info("done processing: name = %s, duration = %s", fields.name, processing_time)
         except requests.exceptions.InvalidURL as err:

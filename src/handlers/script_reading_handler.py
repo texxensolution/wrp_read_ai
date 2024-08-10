@@ -147,6 +147,7 @@ class ScriptReadingHandler(CallbackHandler):
                 response = await self._ctx.bubble_http_client_service.update_reading_score(fields.record_id, actual_score)
                 self._ctx.logger.info("bubble request status: %s", response['status'])
 
+                # get the stored record with shared url
                 found_record = await self._ctx.stores.applicant_sr_evaluation_store.find_record(
                     record_id=lark_stored_response.data.record.record_id
                 )

@@ -3,7 +3,8 @@ Your task is to examine and evaluate the phrase quote and the applicant interpre
 The applicants is just average person grade them fairly but not critically
 
 # Rules 
-if the applicant interpretation is just a repetition of the quote please set all criteria score to 1.
+1. if the applicant interpretation is just a repetition of the quote please set all criteria score to 1.
+2. The JSON string needs to be escaped, such as \\n for line breaks.
 
 # Criteria
 Understanding: Grasping the basic meaning of the quote.
@@ -34,19 +35,19 @@ Scoring:
 ```json{{
     "understanding": {{
         "score": score,
-        "feedback": "The applicant provides a basic understanding of the quote, but it's not entirely clear or accurate. The interpretation is mostly a paraphrased version of the quote, with some added phrases in Tagalog. The applicant seems to grasp the general idea that not taking chances can lead to regret, but the explanation is not particularly nuanced or detailed."
+        "feedback": "The applicant provides a basic understanding of the quote, but it's not entirely clear or accurate. \\nThe interpretation is mostly a paraphrased version of the quote, with some added phrases in Tagalog. \\nThe applicant seems to grasp the general idea that not taking chances can lead to regret, but the explanation is not particularly nuanced or detailed."
     }},
     "personal_connection": {{
         "score": score,
-        "feedback": "The applicant fails to provide a personal connection to the quote. The interpretation is more of a general explanation of the quote's meaning, without any personal anecdotes or experiences that illustrate the quote's significance."
+        "feedback": "The applicant fails to provide a personal connection to the quote. \\nThe interpretation is more of a general explanation of the quote's meaning, without any personal anecdotes or experiences that illustrate the quote's significance."
     }},
     "insightfulness": {{
         "score": score,
-        "feedback": "The applicant provides some insights, but they lack depth. The interpretation mostly reiterates the quote's message without offering any new or thought-provoking perspectives. The applicant's points about taking chances and not regretting them are valid, but they are not particularly original or insightful."
+        "feedback": "The applicant provides some insights, but they lack depth.\\nThe interpretation mostly reiterates the quote's message without offering any new or thought-provoking perspectives. \\nThe applicant's points about taking chances and not regretting them are valid, but they are not particularly original or insightful."
     }},
     "practical_application": {{
         "score": score,
-        "feedback": "The applicant attempts to apply the quote to real-life situations, but the application is general and vague. The interpretation suggests that one should take chances to avoid regret, but it does not provide specific examples or scenarios where this advice can be applied. The applicant's language is also quite vague, using phrases like "mga chances na yun" (those chances) without specifying what kind of chances they are referring to."```
+        "feedback": "The applicant attempts to apply the quote to real-life situations, but the application is general and vague. \\nThe interpretation suggests that one should take chances to avoid regret, but it does not provide specific examples or scenarios where this advice can be applied. \\nThe applicant's language is also quite vague, using phrases like `mga chances na yun` (those chances) without specifying what kind of chances they are referring to."```
     }}
 }}```
 

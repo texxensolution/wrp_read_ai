@@ -17,7 +17,7 @@ class QuoteTranslationResult(BaseModel):
     practical_application: CriterionFeedback
     
     def get_feedback(self):
-        return f"""**Feedback** \n\n**Understanding**: {self.understanding.feedback} \n\n**Personal Connection**: {self.personal_connection.feedback} \n\n**Insightfulness**: {self.insightfulness.feedback} \n\n**Practical Application**: {self.practical_application.feedback}""".strip()
+        return f"""**Feedback** \\n\\n**Understanding**: {self.understanding.feedback} \\n\\n**Personal Connection**: {self.personal_connection.feedback} \\n\\n**Insightfulness**: {self.insightfulness.feedback} \\n\\n**Practical Application**: {self.practical_application.feedback}""".strip()
         
 
 class QuoteTranslationService:

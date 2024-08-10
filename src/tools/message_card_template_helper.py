@@ -14,6 +14,18 @@ class ReadingTemplateVariables(BaseModel):
     given_script: str
     evaluation: str
 
+class QuoteInterpretationVariables(BaseModel):
+    name: str # check
+    interpretation: str #check
+    quote: str # check
+    feedback: str 
+    understanding: int
+    insightfulness: int
+    personal_connection: int
+    practical_application: int
+    total_score: int # check
+    view_link: str
+
 def reading_notification_template_card(variables: ReadingTemplateVariables):
     given_script = variables.given_script.replace('"', '\"')
     evaluation = variables.evaluation.replace("\n", "\\n")
@@ -23,3 +35,9 @@ def reading_notification_template_card(variables: ReadingTemplateVariables):
 
     return f"{{\"type\": \"template\", \"data\": {{\"template_id\": \"ctp_AA0bLLpfBbac\", \"template_variable\": {{\"calculated_score\": {variables.calculated_score}, \"voice_quality\": {variables.voice_quality}, \"pacing_score\": {variables.pacing_score}, \"wpm_category\": {variables.wpm_category}, \"fluency_score\": {variables.fluency_score}, \"accuracy_score\": {int(variables.accuracy_score)}, \"evaluation\": \"{evaluation}\", \"given_script\": \"{given_script}\", \"name\": \"{variables.name}\", \"correct_count\": {variables.correct_count}, \"total_words_count\": {variables.total_words_count}, \"view_link\": \"{variables.view_link}\"}}}}}}"
         
+def quote_interpretation_template_card(variables: QuoteInterpretationVariables):
+    feedback = variables.feedback.replace("\n", "\\n")
+    if variables.total_score >= 7:
+        return f"{{\"type\": \"template\", \"data\": {{\"template_id\": \"ctp_AA0Q5yF98Bl5\", \"template_variable\": {{\"total_score\": {variables.total_score}, \"name\": \"{variables.name}\", \"interpretation\": \"{variables.interpretation}\", \"quote\": \"{variables.quote}\", \"feedback\": \"{feedback}\", \"understanding\": {variables.understanding}, \"insightfulness\": {variables.insightfulness}, \"personal_connection\": {variables.personal_connection}, \"practical_application\": {variables.practical_application}, \"view_link\": \"{variables.view_link}\"}}}}}}"
+
+    return f"{{\"type\": \"template\", \"data\": {{\"template_id\": \"ctp_AA0L3KyhmXXh\", \"template_variable\": {{\"total_score\": {variables.total_score}, \"name\": \"{variables.name}\", \"interpretation\": \"{variables.interpretation}\", \"quote\": \"{variables.quote}\", \"feedback\": \"{feedback}\", \"understanding\": {variables.understanding}, \"insightfulness\": {variables.insightfulness}, \"personal_connection\": {variables.personal_connection}, \"practical_application\": {variables.practical_application}, \"view_link\": \"{variables.view_link}\"}}}}}}"
