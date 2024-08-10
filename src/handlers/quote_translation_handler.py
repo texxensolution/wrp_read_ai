@@ -96,8 +96,6 @@ class QuoteTranslationHandler(CallbackHandler):
 
             notification_content = quote_interpretation_template_card(notification_payload)
 
-            print(notification_content)
-
             await self._ctx.lark_messenger.send_message_card_to_group_chat(
                 group_chat_id=os.getenv("QUOTE_GROUP_CHAT_ID"),
                 content=notification_content
