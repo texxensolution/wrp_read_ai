@@ -44,7 +44,10 @@ class ReferenceStore:
             version = item.fields.get("version")
 
             item = ReferenceItemResponse(
-                id=id, content=content, type=type, script_id=script_id, version=version
+                id=id, content=content,
+                type=type,
+                script_id=script_id,
+                version=version
             )
 
             records.append(item)

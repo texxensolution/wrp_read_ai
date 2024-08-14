@@ -1,20 +1,18 @@
-from pydantic import BaseModel
-
-from src.stores import ApplicantScriptReadingEvaluationStore, BubbleDataStore, ApplicantQuoteTranslationEvaluationStore, \
-    ReferenceStore, ApplicantPhotoInterpretationEvaluationStore
+from .lark_data_store import LarkDataStore
+from src.dtos import QuoteTranslationResultDTO, ScriptReadingResultDTO
+from src.stores import BubbleDataStore, \
+    ReferenceStore
 
 
 class Stores:
     def __init__(
         self,
-        applicant_sr_evaluation_store: ApplicantScriptReadingEvaluationStore,
-        applicant_qt_evaluation_store: ApplicantQuoteTranslationEvaluationStore,
-        applicant_photo_evaluation_store: ApplicantPhotoInterpretationEvaluationStore,
+        sr_eval_store: LarkDataStore[ScriptReadingResultDTO],
+        qt_eval_store: LarkDataStore[QuoteTranslationResultDTO],
         bubble_data_store: BubbleDataStore,
         reference_store: ReferenceStore
     ):
-        self.applicant_sr_evaluation_store: ApplicantScriptReadingEvaluationStore = applicant_sr_evaluation_store
-        self.applicant_qt_evaluation_store: ApplicantQuoteTranslationEvaluationStore = applicant_qt_evaluation_store
-        self.applicant_photo_evaluation_store: ApplicantPhotoInterpretationEvaluationStore = applicant_photo_evaluation_store
+        self.sr_eval_store = sr_eval_store
+        self.qt_eval_store = qt_eval_store
         self.bubble_data_store: BubbleDataStore = bubble_data_store
         self.reference_store: ReferenceStore = reference_store

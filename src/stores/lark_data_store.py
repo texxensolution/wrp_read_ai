@@ -1,13 +1,20 @@
-from src.dtos import QuoteTranslationResultDTO
+from src.dtos import PhotoInterpretationResultDTO
 from src.lark import BitableManager
+from typing import TypeVar, Generic
+
+T = TypeVar("T")
 
 
-class ApplicantQuoteTranslationEvaluationStore:
-    def __init__(self, table_id: str, base_manager: BitableManager):
+class LarkDataStore(Generic[T]):
+    def __init__(
+        self,
+        table_id: str,
+        base_manager: BitableManager
+    ):
         self.table_id = table_id
         self.base_manager = base_manager
 
-    async def create(self, payload: QuoteTranslationResultDTO):
+    async def create(self, payload: T):
         try:
             response = await self.base_manager.create_record_async(
                 table_id=self.table_id,
@@ -15,8 +22,13 @@ class ApplicantQuoteTranslationEvaluationStore:
             )
             return response
         except Exception as err:
-            raise Exception(f"ApplicantQuoteTranslationEvaluation: cant create a record, reason: {err}\n payload: {payload.model_dump_json(indent=4)}")
-    
+            raise Exception(
+                f"""
+                    LarkDataStore Error: {err}
+                    Payload: {payload.model_dump_json(indent=4)}
+                """
+            )
+
     async def find_record(self, record_id: str):
         try:
             response = await self.base_manager.find_record(
@@ -25,4 +37,4 @@ class ApplicantQuoteTranslationEvaluationStore:
             )
             return response
         except Exception as err:
-            raise Exception(f"Applicant QT Store error: {err}")
+            raise Exception(f"LarkDataStore Error: {err}")

@@ -1,7 +1,5 @@
 from .bubble_data_store import BubbleDataStore
-from .applicant_script_reading_evaluation_store import ApplicantScriptReadingEvaluationStore
-from .applicant_quote_translation_evaluation_store import ApplicantQuoteTranslationEvaluationStore
-from .applicant_photo_interpretation_evaluation_store import ApplicantPhotoInterpretationEvaluationStore
 from .reference_store import ReferenceStore
 from ._stores import Stores
+from .lark_data_store import LarkDataStore
 # update
