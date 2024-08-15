@@ -10,7 +10,6 @@ from src.common.utilities import download_mp3, delete_file, \
 from uuid import uuid4
 from src.exceptions import FileUploadError, EvaluationFailureError, \
     AudioIncompleteError
-from speech_recognition.exceptions import TranscriptionFailed
 from typing import Dict
 from src.dtos import RecordingRelatedFieldsScore, ScriptReadingResultDTO
 from src.interfaces import CallbackHandler
@@ -262,13 +261,6 @@ class ScriptReadingHandler(CallbackHandler):
                     "applicant name: %s, message: audio is less than 30 secs",
                     fields.name
                 )
-
-            except TranscriptionFailed as err:
-                await self._ctx.stores.bubble_data_store.increment_retry(
-                    record_id=fields.record_id,
-                    count=fields.no_of_retries
-                )
-                self._ctx.logger.error("transcription failure: %s", err)
 
             except EvaluationFailureError as err:
                 await self._ctx.stores.bubble_data_store.increment_retry(

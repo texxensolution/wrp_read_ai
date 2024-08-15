@@ -108,7 +108,7 @@ class QuoteTranslationHandler(CallbackHandler):
                 fields.record_id,
                 "done"
             )
-            
+         
             self._ctx.logger.info(
                 "updating applicant score on bubble database..."
             )
@@ -171,10 +171,11 @@ class QuoteTranslationHandler(CallbackHandler):
                 )
 
         except Exception as err:
-            await self._ctx.stores.bubble_data_store.increment_retry(
-                record_id=fields.record_id,
-                count=fields.no_of_retries
-            )
+            await self._ctx.stores.bubble_data_store \
+                .increment_retry(
+                    record_id=fields.record_id,
+                    count=fields.no_of_retries
+                )
             self._ctx.logger.error('general error: %s', err)
         finally:
             self._ctx.logger.info('deleting mp3...')

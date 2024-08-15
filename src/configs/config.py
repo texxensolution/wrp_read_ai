@@ -4,13 +4,8 @@ import sys
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from ._configuration import Configuration
-from src.services import GroqTranscriptionService
-from typing import Dict
-from src.interfaces import ITranscriber
 
 load_dotenv('.env', override=True)
-
-# initialize sqlalchemy
 
 info_log_file = os.path.join("logs", "worker_info.log")
 error_log_file = os.path.join("logs", "worker_error.log")
