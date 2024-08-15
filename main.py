@@ -1,16 +1,15 @@
 import asyncio
 import argparse
 from typing import Dict
-from src.configs import initialize_dependencies
+from src.configs.initialize_dependencies import initialize_dependencies
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
-from src.configs import context
+from src.configs.setup_context import context
 from src.interfaces import CallbackHandler
 from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
-from src.configs.config import Base, engine
-from src.configs.models import Notification
 
 Handlers = Dict[str, CallbackHandler]
+
 
 async def main(
     server_task: str,
@@ -20,8 +19,10 @@ async def main(
 ):
     """
         Entry point:
-        1. This will setup all necessary dependencies and fetch all references from lark base
-        2. This will create an infinite loop that will poll and process assessment dynamically based on their assessment types
+        1. This will setup all necessary dependencies and fetch all references 
+        from lark base
+        2. This will create an infinite loop that will poll and process 
+        assessment dynamically based on their assessment types
     """
     should_exit = False
 
@@ -44,16 +45,21 @@ async def main(
 
             else:
                 await worker.sync()
-                await asyncio.sleep(3)
-            ctx.logger.info("delay for 3 secs...")
-            await asyncio.sleep(3)
+            ctx.logger.info("delay for 1 sec...")
+            await asyncio.sleep(1)
         except KeyboardInterrupt:
             should_exit = True
 
 if __name__ == "__main__":
-    Base.metadata.create_all(bind=engine)
+    print("starting...")
     parser = argparse.ArgumentParser(description='ReadAI Background processor')
-    parser.add_argument('--server-task', type=str, default='sr', choices=['sr', 'quote', 'photo'], help='Choose which task to run')
+    parser.add_argument(
+        '--server-task',
+        type=str,
+        default='sr',
+        choices=['sr', 'quote', 'photo'],
+        help='Choose which task to run'
+    )
 
     args = parser.parse_args()
 

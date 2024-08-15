@@ -6,21 +6,20 @@ To run this program you can create a systemd.service script to run it as a backg
 Before deploying running it as a background process, make sure to install necessary dependencies specified in requirements.txt below you can find detail instruction to run this system as a background process.
 
 # File Structure
-data (compatibility with script reading) - this contains all references for script reading script
-logs - this contains all logs emitted by the readai background processor
-scripts - this contains all the automation and deployment scripts
-storage - this holds the audio recordings temporarily before deletion after the assessment is processed
-src - this contains the source code for the readai background processor
-   • cli - contains cli interface to handle service redeployment, restart (not implemented yet)
-   • common - this contains common code or general code that I cant properly place elsewhere :D
-   • dtos - this contains all Data Transfer Objects its used to wrap data and provide better autocompletion
-   • enums - this provide all enums that the project used
-   • exception - this contains custom exceptions
-   • interfaces - this contains all the contracts or interfaces
-   • lark - this is a small library I wrote for interacting with Lark Base
-   • prompts - this contains the llm prompts
-   • services - this contains the service wrapper for different apis
-   • stores - this handle data persistent
+data (compatibility with script reading) - this contains all references for script reading script <br/>
+logs - this contains all logs emitted by the readai background processor <br/>
+scripts - this contains all the automation and deployment scripts <br/>
+storage - this holds the audio recordings temporarily before deletion after the assessment is processed <br/>
+src - this contains the source code for the readai background processor <br/>
+   • common - this contains common code or general code that I cant properly place elsewhere :D <br/>
+   • dtos - this contains all Data Transfer Objects its used to wrap data and provide better autocompletion <br/>
+   • enums - this provide all enums that the project used <br/>
+   • exception - this contains custom exceptions <br/>
+   • interfaces - this contains all the contracts or interfaces <br/>
+   • lark - this is a small library I wrote for interacting with Lark Base <br/>
+   • prompts - this contains the llm prompts <br />
+   • services - this contains the service wrapper for different apis <br/>
+   • stores - this handle data persistent <br/>
 
 ## Steps to run the code
 

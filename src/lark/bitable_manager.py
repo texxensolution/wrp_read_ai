@@ -17,7 +17,7 @@ class BitableManager:
         self.BITABLE_ID = table_id
 
     async def find_record(self, table_id: str, record_id: str, with_shared_url: bool = True):
-        request: GetAppTableRecordRequest = GetAppTableRecordRequest.builder() \
+        request = GetAppTableRecordRequest.builder() \
             .app_token(self.BITABLE_TOKEN) \
             .table_id(table_id) \
             .record_id(record_id) \

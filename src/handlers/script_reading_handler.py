@@ -3,16 +3,21 @@ import librosa
 import requests
 import os
 import json
-from src.common import AppContext, AudioProcessor, TextPreprocessor, TranscriptionProcessor, \
-FeatureExtractor, get_total_word_correct
-from src.common.utilities import download_mp3, delete_file, get_necessary_fields_from_payload, log_execution_time
+from src.common import AppContext, AudioProcessor, TextPreprocessor, \
+    TranscriptionProcessor, FeatureExtractor, get_total_word_correct
+from src.common.utilities import download_mp3, delete_file, \
+    get_necessary_fields_from_payload, log_execution_time
 from uuid import uuid4
-from src.exceptions import FileUploadError, EvaluationFailureError, AudioIncompleteError
-from speech_recognition.exceptions import TranscriptionFailed
+from src.exceptions import FileUploadError, EvaluationFailureError, \
+    AudioIncompleteError
 from typing import Dict
 from src.dtos import RecordingRelatedFieldsScore, ScriptReadingResultDTO
 from src.interfaces import CallbackHandler
-from src.tools.message_card_template_helper import reading_notification_template_card, ReadingTemplateVariables
+from src.tools.message_card_template_helper import (
+    reading_notification_template_card,
+    ReadingTemplateVariables
+)
+
 
 class ScriptReadingHandler(CallbackHandler):
     def __init__(self, ctx: AppContext):
@@ -28,11 +33,25 @@ class ScriptReadingHandler(CallbackHandler):
 
         y, sr = librosa.load(generated_filename, sr=16000)
         avg_pause_duration = FeatureExtractor(y, sr).calculate_pause_duration()
-        words_per_minute = AudioProcessor.calculate_words_per_minute(transcription, recording_duration)
+        words_per_minute = AudioProcessor.calculate_words_per_minute(
+            transcription,
+            recording_duration
+        )
         wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
-        pronunciation, fluency = self._ctx.voice_analyzer_service.calculate_score(generated_filename)
-        similarity_score = TranscriptionProcessor.compute_distance(transcription, given_transcription)
-        pacing_score = AudioProcessor.determine_speaker_pacing(words_per_minute, avg_pause_duration)
+        pronunciation, fluency = self._ctx \
+            .voice_analyzer_service \
+            .calculate_score(
+                generated_filename
+            )
+        similarity_score = TranscriptionProcessor.compute_distance(
+            transcription,
+            given_transcription
+        )
+
+        pacing_score = AudioProcessor.determine_speaker_pacing(
+            words_per_minute,
+            avg_pause_duration
+        )
 
         return RecordingRelatedFieldsScore(
             fluency=fluency,
@@ -56,24 +75,35 @@ class ScriptReadingHandler(CallbackHandler):
         )
 
     async def handle(self, payload: Dict[str, str]):
-        with log_execution_time() as get_elapsed_time:
+        with log_execution_time() as _:
             try:
                 process_start = time.time()
                 self._ctx.logger.info('script reading evaluation...')
-
                 fields = get_necessary_fields_from_payload(payload)
+                given_transcription = self._ctx.stores \
+                    .reference_store \
+                    .get_script(fields.script_id)
 
-                given_transcription = self._ctx.stores.reference_store.get_script(fields.script_id)
+                generated_filename = os.path.join(
+                    'storage',
+                    'script_reading',
+                    f"{fields.user_id}.{uuid4()}.mp3"
+                )
 
-                generated_filename = os.path.join('storage', 'script_reading', f"{fields.user_id}.{uuid4()}.mp3")
+                self._ctx.logger.info(
+                    'downloading audio url from %s', fields.audio_url
+                )
 
-                self._ctx.logger.info('downloading audio url from %s', fields.audio_url)
                 download_mp3(fields.audio_url, generated_filename)
 
                 self._ctx.logger.info('removing silence from audio...')
-                recording_duration = AudioProcessor.remove_silence_from_audio(generated_filename)
+                recording_duration = AudioProcessor.remove_silence_from_audio(
+                    generated_filename
+                )
 
-                file_token = await self._ctx.file_manager.upload_async(generated_filename)
+                file_token = await self._ctx.file_manager.upload_async(
+                    generated_filename
+                )
 
                 if recording_duration < 30:
                     raise AudioIncompleteError(
@@ -83,11 +113,15 @@ class ScriptReadingHandler(CallbackHandler):
                     )
 
                 self._ctx.logger.info('transcribing...')
-                transcription = await self._ctx.transcription_service.transcribe(generated_filename)
+                transcription = await self._ctx.transcription_service \
+                    .transcribe(generated_filename)
                 transcription = TextPreprocessor.normalize(transcription)
 
                 # get total correct word count and base word count
-                correct_word_count, base_words_count = get_total_word_correct(given_transcription, transcription)
+                correct_word_count, base_words_count = get_total_word_correct(
+                    given_transcription,
+                    transcription
+                )
 
                 self._ctx.logger.info('calculating similarity score...')
 
@@ -133,7 +167,11 @@ class ScriptReadingHandler(CallbackHandler):
                     environment=self._ctx.environment.upper()
                 )
 
-                lark_stored_response = await self._ctx.stores.applicant_sr_evaluation_store.create(sr_payload)
+                lark_stored_response = await self._ctx.stores \
+                    .sr_eval_store \
+                    .create(
+                        sr_payload
+                    )
 
                 # update status on lark base
                 await self._ctx.stores.bubble_data_store.update_status(
@@ -144,17 +182,29 @@ class ScriptReadingHandler(CallbackHandler):
                 self._ctx.logger.info("updating score on bubble database...")
 
                 # update applicant data on bubble database
-                response = await self._ctx.bubble_http_client_service.update_reading_score(fields.record_id, actual_score)
-                self._ctx.logger.info("bubble request status: %s", response['status'])
+                response = await self._ctx.bubble_http_client_service \
+                    .update_reading_score(
+                        fields.record_id,
+                        actual_score
+                    )
 
-                # get the stored record with shared url
-                found_record = await self._ctx.stores.applicant_sr_evaluation_store.find_record(
-                    record_id=lark_stored_response.data.record.record_id
+                self._ctx.logger.info(
+                    "bubble request status: %s",
+                    response['status']
                 )
 
-                found_record_content = json.loads(found_record.raw.content.decode())
+                # get the stored record with shared url
+                found_record = await self._ctx.stores \
+                    .sr_eval_store \
+                    .find_record(
+                        record_id=lark_stored_response.data.record.record_id
+                    )
 
-                shared_url = found_record_content['data']['record']['record_url']
+                record_content = json.loads(
+                    found_record.raw.content.decode()
+                )
+
+                shared_url = record_content['data']['record']['record_url']
 
                 # notify the group chat
                 notification_payload = ReadingTemplateVariables(
@@ -172,38 +222,45 @@ class ScriptReadingHandler(CallbackHandler):
                     evaluation=llm_response.evaluation
                 )
 
-                notif_payload = reading_notification_template_card(notification_payload)
-
-                await self._ctx.lark_messenger.send_message_card_to_group_chat(
-                    os.getenv("SR_GROUP_CHAT_ID"),
-                    notif_payload
+                notif_payload = reading_notification_template_card(
+                    notification_payload
                 )
 
-                self._ctx.logger.info('done processing: %s, processing_time: %s', fields.name, process_time)
+                await self._ctx.lark_messenger \
+                    .send_message_card_to_group_chat(
+                        os.getenv("SR_GROUP_CHAT_ID"),
+                        notif_payload
+                    )
+
+                self._ctx.logger.info(
+                    'done processing: %s, processing_time: %s',
+                    fields.name,
+                    process_time
+                )
 
             except requests.exceptions.InvalidURL as err:
                 await self._ctx.stores.bubble_data_store.update_status(
                     record_id=fields.record_id,
                     status="invalid audio url"
                 )
-                self._ctx.logger.error("applicant name: %s, message: %s", fields.name, err)
+                self._ctx.logger.error(
+                    "applicant name: %s, message: %s",
+                    fields.name,
+                    err
+                )
 
             except FileUploadError as err:
                 self._ctx.logger.error(err)
 
-            except AudioIncompleteError as err:
+            except AudioIncompleteError:
                 await self._ctx.stores.bubble_data_store.update_status(
                     record_id=fields.record_id,
                     status="audio_less_than_30_secs"
                 )
-                self._ctx.logger.error("applicant name: %s, message: audio is less than 30 secs", fields.name)
-
-            except TranscriptionFailed as err:
-                await self._ctx.stores.bubble_data_store.increment_retry(
-                    record_id=fields.record_id,
-                    count=fields.no_of_retries
+                self._ctx.logger.error(
+                    "applicant name: %s, message: audio is less than 30 secs",
+                    fields.name
                 )
-                self._ctx.logger.error("transcription failure: %s", err)
 
             except EvaluationFailureError as err:
                 await self._ctx.stores.bubble_data_store.increment_retry(
@@ -220,7 +277,11 @@ class ScriptReadingHandler(CallbackHandler):
                 self._ctx.logger.error("request exception: %s", err)
             
             except KeyError as err:
-                await self._ctx.stores.bubble_data_store.update_status(fields.record_id, "script error")
+                await self._ctx.stores.bubble_data_store \
+                    .update_status(
+                        fields.record_id,
+                        "script error"
+                    )
                 self._ctx.logger.error("error: %s", err)
 
             except Exception as err:

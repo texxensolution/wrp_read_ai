@@ -2,7 +2,7 @@ import lark_oapi as lark
 import os
 
 
-class Lark:
+class Lark(lark.Client):
     def __init__(self, app_id=None, app_secret=None, debug=False):
      
         self.client = lark.Client.builder() \
