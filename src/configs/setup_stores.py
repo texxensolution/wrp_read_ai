@@ -1,7 +1,7 @@
 from src.stores import Stores, LarkDataStore, BubbleDataStore, ReferenceStore
 from src.dtos import ScriptReadingResultDTO, QuoteTranslationResultDTO
-from .initialize_services import base_manager
-from .initialize_constants import base_constants
+from .setup_services import base_manager
+from .setup_constants import base_constants
 from .config import config
 import logging
 

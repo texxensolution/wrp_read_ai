@@ -4,7 +4,7 @@ from typing import Dict
 from src.configs.initialize_dependencies import initialize_dependencies
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
-from src.configs.initialize_context import context
+from src.configs.setup_context import context
 from src.interfaces import CallbackHandler
 from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
 
@@ -46,7 +46,7 @@ async def main(
             else:
                 await worker.sync()
             ctx.logger.info("delay for 1 sec...")
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(1)
         except KeyboardInterrupt:
             should_exit = True
 
