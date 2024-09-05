@@ -46,7 +46,7 @@ async def main(
             else:
                 await worker.sync()
             ctx.logger.info("delay for 1 sec...")
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(1)
         except KeyboardInterrupt:
             should_exit = True
 
