@@ -114,7 +114,7 @@ class ScriptReadingHandler(CallbackHandler):
 
                 self._ctx.logger.info('transcribing...')
                 transcription = await self._ctx.transcription_service \
-                    .transcribe(generated_filename)
+                    .transcribe(generated_filename, "groq")
                 transcription = TextPreprocessor.normalize(transcription)
 
                 # get total correct word count and base word count
