@@ -4,7 +4,7 @@ from typing import Dict
 from src.configs.initialize_dependencies import initialize_dependencies
 from src.enums import AssessmentType
 from src.common import AppContext, Worker
-from src.configs.initialize_context import context
+from src.configs.setup_context import context
 from src.interfaces import CallbackHandler
 from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
 
