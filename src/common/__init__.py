@@ -13,4 +13,3 @@ from .worker import Worker
 from ._constants import Constants
 from .text_preprocessor import TextPreprocessor
 from .text_processor import get_total_word_correct
-# update
