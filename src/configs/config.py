@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
 from ._configuration import Configuration
+from src.services.api_manager import APIManager
 
 load_dotenv('.env', override=True)
 
@@ -15,9 +16,9 @@ if not os.path.exists("logs"):
 
 # Configure the info file handler to log info and above
 info_handler = RotatingFileHandler(
-    info_log_file, 
-    maxBytes=10 ** 6, 
-    backupCount=5, 
+    info_log_file,
+    maxBytes=10 ** 6,
+    backupCount=5,
     encoding='utf-8'
 )
 info_handler.setLevel(logging.INFO)
@@ -64,3 +65,13 @@ config = Configuration(
     NOTIFY_APP_ID=os.getenv("NOTIFY_APP_ID"),
     NOTIFY_APP_SECRET=os.getenv("NOTIFY_APP_SECRET")
 )
+
+groq_api_keys = [
+    os.getenv("GROQ_API_KEY"),
+    os.getenv("GROQ_API_KEY_1"),
+    os.getenv("GROQ_API_KEY_2"),
+    os.getenv("GROQ_API_KEY_3"),
+    os.getenv("GROQ_API_KEY_4"),
+]
+
+groq_api_keys_manager = APIManager(groq_api_keys)

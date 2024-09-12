@@ -1,15 +1,26 @@
-import os
+import logging
+from src.services.api_manager import APIManager
 from src.interfaces import ILLM
 from groq import AsyncGroq
 
+logger = logging.getLogger()
+
+
 class GroqService(ILLM):
-    def __init__(self, token=os.getenv('GROQ_API_KEY')):
-        self.client = AsyncGroq(
-            api_key=token,
-        )
+    def __init__(
+        self,
+        api_manager: APIManager
+    ):
+        self.client = AsyncGroq(max_retries=3)
+        self.api_manager = api_manager
     
     async def chat(self, prompt: str):
         try:
+            api_key = self.api_manager.get_next_key()
+            self.client.api = api_key
+
+            logger.info("api_key_used for chat: %s", api_key)
+
             completion = await self.client.chat.completions.create(
                 messages=[
                     {

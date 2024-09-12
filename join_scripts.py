@@ -1,7 +1,8 @@
 import pandas as pd
-from src.common import TextPreprocessor
 
-df = pd.read_csv("data/dictionary_1.0.2.csv")
+from src.common.text_preprocessor import TextPreprocessor
+
+df = pd.read_csv("data/jerome.csv")
 
 target_script_id = "script-0002"
 
@@ -30,6 +31,6 @@ joined_df = pd.DataFrame({
     "content": contents
 })
 
-joined_df.to_csv("data/joined_dictionary.csv", index=False)
+joined_df.to_csv("data/joined_dictionary_demo.csv", index=False)
     
 

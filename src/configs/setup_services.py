@@ -4,6 +4,7 @@ from .config import config
 from typing import Dict
 from src.services import GroqTranscriptionService, \
     DeepgramTranscriptionService
+from src.configs.config import groq_api_keys_manager
 
 lark_client = Lark(
     app_id=config.APP_ID,
@@ -28,8 +29,8 @@ file_manager = FileManager(
 
 transcriptions_clients: Dict[str, ITranscriber] = {
     "groq": GroqTranscriptionService(
-        token=config.GROQ_API_KEY
-        ),
+        api_manager=groq_api_keys_manager
+    ),
     "deepgram": DeepgramTranscriptionService(
         token=config.DEEPGRAM_TOKEN
     )
