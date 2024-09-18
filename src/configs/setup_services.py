@@ -29,7 +29,7 @@ file_manager = FileManager(
 transcriptions_clients: Dict[str, ITranscriber] = {
     "groq": GroqTranscriptionService(
         token=config.GROQ_API_KEY
-        ),
+    ),
     "deepgram": DeepgramTranscriptionService(
         token=config.DEEPGRAM_TOKEN
     )
