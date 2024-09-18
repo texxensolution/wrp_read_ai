@@ -1,4 +1,5 @@
 from src.common import AppContext, LarkQueue, TaskQueue
+from src.configs.config import groq_api_keys_manager
 from src.services import GroqService, LlamaService, QuoteTranslationService, \
     ScriptReadingService, BubbleHTTPClientService, \
     TranscriptionService, VoiceAnalyzerService
@@ -9,14 +10,13 @@ from .setup_services import base_manager, file_manager, \
     transcriptions_clients, notify_lark_client
 from .setup_stores import stores
 import logging
-#
 
 context = AppContext(
     base_manager=base_manager,
     file_manager=file_manager,
     llama_service=LlamaService(
         client=GroqService(
-            token=config.GROQ_API_KEY
+            api_manager=groq_api_keys_manager
         )
     ),
     lark_queue=LarkQueue(
@@ -34,10 +34,10 @@ context = AppContext(
     version=config.VERSION,
     stores=stores,
     quote_translation_service=QuoteTranslationService(
-        token=config.GROQ_API_KEY
+        api_manager=groq_api_keys_manager
     ),
     script_reading_service=ScriptReadingService(
-        token=config.GROQ_API_KEY
+        api_manager=groq_api_keys_manager
     ),
     bubble_http_client_service=BubbleHTTPClientService(
         config.BUBBLE_BEARER_TOKEN

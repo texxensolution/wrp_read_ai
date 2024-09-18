@@ -6,18 +6,23 @@ from scipy.signal import find_peaks
 from typing import Literal
 
 class AudioProcessor:
-    
     """audio processor class"""
     @staticmethod
     # Load the audio file
-    def remove_silence_from_audio(audio_path, silence_thresh=-50, min_silence_len=500, keep_silence=500, _format: Literal["mp3", "wav"] = "mp3"):
+    def remove_silence_from_audio(
+        audio_path,
+        silence_thresh=-50,
+        min_silence_len=500,
+        keep_silence=500,
+        _format: Literal["mp3", "wav"] = "mp3"
+    ):
         audio = AudioSegment.from_file(audio_path)
 
         chunks = split_on_silence(
             audio,
             min_silence_len=min_silence_len,
-            silence_thresh=silence_thresh, 
-            keep_silence=keep_silence 
+            silence_thresh=silence_thresh,
+            keep_silence=keep_silence
         )
 
         processed_audio = AudioSegment.empty()
@@ -82,7 +87,9 @@ class AudioProcessor:
         pitch_stability = len(peaks) / len(pitch_values)
         
         # Calculate pitch stability score
-        stability_score = AudioProcessor.calculate_stability_score(pitch_stability)
+        stability_score = AudioProcessor.calculate_stability_score(
+            pitch_stability
+        )
         return stability_score
     
     @staticmethod
