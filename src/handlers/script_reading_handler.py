@@ -38,7 +38,7 @@ class ScriptReadingHandler(CallbackHandler):
             recording_duration
         )
         wpm_category = AudioProcessor.determine_wpm_category(words_per_minute)
-        pronunciation, fluency = self._ctx \
+        pronunciation, fluency, voice_classification = self._ctx \
             .voice_analyzer_service \
             .calculate_score(
                 generated_filename
@@ -57,6 +57,7 @@ class ScriptReadingHandler(CallbackHandler):
             fluency=fluency,
             avg_pause_duration=avg_pause_duration,
             pronunciation=pronunciation,
+            voice_classification=voice_classification,
             wpm_category=wpm_category,
             similarity_score=similarity_score,
             pacing_score=pacing_score,
@@ -159,6 +160,7 @@ class ScriptReadingHandler(CallbackHandler):
                     fluency=partial_fields_score.fluency,
                     similarity_score=partial_fields_score.similarity_score,
                     pronunciation=partial_fields_score.pronunciation,
+                    voice_classification=partial_fields_score.voice_classification,
                     pacing_score=partial_fields_score.pacing_score,
                     wpm_category=partial_fields_score.wpm_category,
                     parent_record_id=fields.record_id,
@@ -187,16 +189,16 @@ class ScriptReadingHandler(CallbackHandler):
                 self._ctx.logger.info("updating score on bubble database...")
 
                 # update applicant data on bubble database
-                response = await self._ctx.bubble_http_client_service \
-                    .update_reading_score(
-                        fields.record_id,
-                        actual_score
-                    )
+                # response = await self._ctx.bubble_http_client_service \
+                #     .update_reading_score(
+                #         fields.record_id,
+                #         actual_score
+                #     )
 
-                self._ctx.logger.info(
-                    "bubble request status: %s",
-                    response['status']
-                )
+                # self._ctx.logger.info(
+                #     "bubble request status: %s",
+                #     response['status']
+                # )
 
                 # get the stored record with shared url
                 found_record = await self._ctx.stores \

@@ -6,5 +6,6 @@ class RecordingRelatedFieldsScore(BaseModel):
     wpm_category: float
     pronunciation: float
     fluency: float
+    voice_classification: float
     pacing_score: float
     words_per_minute: float

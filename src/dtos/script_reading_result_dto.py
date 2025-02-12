@@ -15,6 +15,7 @@ class ScriptReadingResultDTO(BaseModel):
     pronunciation: int
     fluency: int
     similarity_score: float
+    voice_classification: float
     pacing_score: float
     wpm_category: int
     words_per_minute: float
