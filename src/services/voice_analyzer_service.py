@@ -1,4 +1,5 @@
 from transformers import pipeline
+from typing import Tuple
 import os
 
 class VoiceAnalyzerService:
@@ -8,7 +9,7 @@ class VoiceAnalyzerService:
         self.fluency_analyzer = pipeline("audio-classification", model="jeromesky/consistency_accuracy_v1.0.3", token=token)
         self.voice_classification_analyzer = pipeline(model='models/pronunciation_v3', task="audio-classification")
 
-    def calculate_score(self, input_path: str):
+    def calculate_score(self, input_path: str) -> Tuple[int, int, int]:
         pronunciation_scores = self.pronunciation_analyzer(input_path)
         fluency_scores = self.fluency_analyzer(input_path)
         voice_classification_scores = self.voice_classification_analyzer(input_path)
