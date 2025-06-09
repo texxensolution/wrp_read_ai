@@ -6,7 +6,7 @@ from src.enums import AssessmentType
 from src.common import AppContext, Worker
 from src.configs.setup_context import context
 from src.interfaces import CallbackHandler
-from src.handlers import QuoteTranslationHandler, ScriptReadingHandler
+from src.handlers import ScriptReadingHandler, EnhancedScriptReadingHandler
 
 Handlers = Dict[str, CallbackHandler]
 
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         '--server-task',
         type=str,
         default='sr',
-        choices=['sr', 'quote', 'photo'],
+        choices=['sr', 'esr'],
         help='Choose which task to run'
     )
 
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     task_map = {
         "sr": AssessmentType.SCRIPT_READING,
-        "quote": AssessmentType.QUOTE_TRANSLATION,
+        "esr": AssessmentType.ENHANCED_SCRIPT_READING,
     }
 
     # map shortcut name to its real name
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # map handlers for all supported assessments
     handlers: Handlers = {
         AssessmentType.SCRIPT_READING: ScriptReadingHandler(context),
-        AssessmentType.QUOTE_TRANSLATION: QuoteTranslationHandler(context)
+        AssessmentType.ENHANCED_SCRIPT_READING: EnhancedScriptReadingHandler(context)
     }
 
     worker = Worker(context, server_task)

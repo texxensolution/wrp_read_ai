@@ -4,6 +4,7 @@ from pydub import AudioSegment
 from pydub.silence import split_on_silence
 from scipy.signal import find_peaks
 from typing import Literal
+import os
 
 class AudioProcessor:
     """audio processor class"""
@@ -132,3 +133,65 @@ class AudioProcessor:
             return 2
         else:
             return 1
+        
+    @staticmethod
+    def cut_and_merge_say_phrases(
+        input_path: str,
+        cycles: int = 10
+    ) -> str:
+        """
+        Cuts out only the 'say‑phrase' (15 s) from each cycle of:
+        15 s show + 5 s ready + 15 s say
+        for up to `cycles` repeats, merges them in order,
+        overwrites the original file, and prints the timestamps.
+        Returns the path to the merged file (same as input_path).
+        Supports both .wav and .mp3 files.
+        """
+        try:
+            if not os.path.exists(input_path):
+                raise FileNotFoundError(f"File not found: {input_path}")
+            ext = os.path.splitext(input_path)[1].lower()
+            if ext not in [".wav", ".mp3"]:
+                raise ValueError("Only .wav and .mp3 files are supported.")
+
+            # --- Load the full audio ---
+            audio = AudioSegment.from_file(input_path)
+            total_ms = len(audio)
+
+            # --- Define durations ---
+            show_ms  = 15 * 1000   # 15 s showing phrase
+            ready_ms =  5 * 1000   # 5 s get ready
+            say_ms   = 15 * 1000   # 15 s saying phrase
+            cycle_ms = show_ms + ready_ms + say_ms
+
+            merged = AudioSegment.empty()
+            timestamps = []  # will hold (start_sec, end_sec) tuples
+
+            for i in range(cycles):
+                say_start_ms = i * cycle_ms + show_ms + ready_ms
+                if say_start_ms >= total_ms:
+                    print(f"⏭️ Cycle {i+1} SAY start beyond audio length, stopping.")
+                    break
+
+                say_end_ms = min(say_start_ms + say_ms, total_ms)
+                merged += audio[say_start_ms:say_end_ms]
+
+                start_sec = say_start_ms / 1000
+                end_sec   = say_end_ms   / 1000
+                timestamps.append((start_sec, end_sec))
+                print(f"  ➕ Appended cycle {i+1} SAY: {start_sec:.1f}s–{end_sec:.1f}s")
+
+            # --- Overwrite the original file ---
+            # Export in the same format as input
+            export_format = ext[1:]  # remove the dot
+            merged.export(input_path, format=export_format)
+            print(f"✅ Overwritten merged audio: {input_path}")
+            print("Merged SAY‑phrase timestamps (sec):", timestamps)
+            return input_path
+
+        except FileNotFoundError as e:
+            print(f"❌ File error: {e}")
+        except ValueError as e:
+            print(f"❌ Value error: {e}")
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")

@@ -3,3 +3,5 @@ from .script_reading_result_dto import ScriptReadingResultDTO
 from .recording_related_fields_score import RecordingRelatedFieldsScore
 from .quote_translation_result_dto import QuoteTranslationResultDTO
 from .photo_interpretation_result_dto import PhotoInterpretationResultDTO
+from .enhanced_script_reading_result_dto import EnhancedScriptReadingResultDTO
+from .esr_recording_related_fields_score import ESRecordingRelatedFieldsScore
