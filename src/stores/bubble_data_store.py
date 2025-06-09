@@ -13,7 +13,7 @@ class BubbleDataStore:
     async def update_status(
         self,
         record_id: str,
-        status: Literal["done", "failed", "file deleted", "invalid audio url", "audio_less_than_30_secs", "script error"]
+        status: Literal["done", "failed", "file deleted", "invalid audio url", "audio_less_than_20_secs", "script error"]
     ):
         try:
             await self.base_manager.update_record_async(
@@ -28,13 +28,14 @@ class BubbleDataStore:
 
     async def increment_retry(self, record_id: str, count: int):
         try:
-            await self.base_manager.update_record_async(
+            response = await self.base_manager.update_record_async(
                 table_id=self.table_id,
                 record_id=record_id,
                 fields={
                     "no_of_retries": count + 1
                 }
             )
+            return response
         except Exception as err:
             raise Exception("BubbleDataStore failed to increment retry:", err)
     

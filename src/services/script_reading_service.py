@@ -63,5 +63,4 @@ class ScriptReadingService:
             "given_script": given_script 
         })
         response: ScriptReadingEvaluationResult = await parser.ainvoke(output)
-
         return response

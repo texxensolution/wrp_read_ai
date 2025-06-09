@@ -1,2 +1,3 @@
 from .quote_translation_handler import QuoteTranslationHandler
 from .script_reading_handler import ScriptReadingHandler
+from .enhanced_script_reading_handler import EnhancedScriptReadingHandler

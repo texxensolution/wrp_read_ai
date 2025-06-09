@@ -118,7 +118,7 @@ def get_prompt_raw(file_path: str):
     :param replacements: Dictionary with placeholder keys and replacement values.
     """
     # Read the content of the markdown file
-    with open(file_path, 'r') as file:
+    with open(file_path, 'r', encoding='utf-8') as file:
         content = file.read()
 
     return content
